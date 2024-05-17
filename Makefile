@@ -2,7 +2,7 @@
 KROOT ?= /lib/modules/`uname -r`/build
 MODE?= STA
 LOW_POWER?= 0
-DTS = dts/nrf70_rpi_interposer.dts
+DTS = dts/sun50i-h616-nrf70.dts
 
 # Private portion
 DRV_FUNC_NAME =  _wifi_fmac

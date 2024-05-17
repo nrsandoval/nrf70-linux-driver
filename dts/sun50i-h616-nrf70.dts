@@ -1,0 +1,32 @@
+/*
+ * Copyright (c) 2023 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: GPL-2.0
+ */
+
+ /dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "allwinner,sun50i-h616";
+	fragment@0 {
+		target = <&spi1>;
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			cs-gpios = <&pio 7 9 1>;
+
+			nrf7002_ek: nrf7002@0 {
+				compatible = "nordic,nrf70-spi";
+				reg = <0x0>;
+				spi-max-frequency = <112000000>;
+				spi-bits-per-word = <8>;
+				status = "okay";
+				bucken-gpio = <&pio 2 15 0>;
+				iovdd-gpio = <&pio 2 14 0>;
+				irq-gpio = <&pio 2 11 0>;
+			};
+		};
+	};
+};
