@@ -1025,7 +1025,7 @@ static void *shim_bus_spi_init(void)
 	lnx_spi_dev_id->driver_data = (kernel_ulong_t)lnx_spi_priv;
 
 	lnx_spi_drv->driver.name = NRF_WIFI_SPI_DRV_NAME;
-	lnx_spi_drv->driver.of_match_table = of_match_ptr(nrf7002_driver_ids);
+	lnx_spi_drv->driver.of_match_table = nrf7002_driver_ids;
 	lnx_spi_drv->id_table = lnx_spi_dev_id;
 	lnx_spi_drv->probe = shim_bus_spi_probe;
 	lnx_spi_drv->remove = shim_bus_spi_remove;

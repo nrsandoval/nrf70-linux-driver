@@ -12,6 +12,7 @@
 #include <linux/printk.h>
 #include <linux/spi/spi.h>
 #include <linux/delay.h>
+#include <linux/of.h>
 
 #include "spi_if.h"
 

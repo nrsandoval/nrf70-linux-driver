@@ -10,6 +10,7 @@
  */
 
 #include <linux/spi/spi.h>
+#include <linux/property.h>
 #include <linux/irq.h>
 #include <linux/gpio/consumer.h>
 #include <linux/delay.h>
