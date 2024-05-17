@@ -897,7 +897,7 @@ shim_bus_spi_intr_reg(void *os_spi_dev_ctx, void *callbk_data,
 	struct shim_bus_spi_dev_ctx *lnx_spi_dev_ctx = NULL;
 	struct shim_bus_spi_priv *lnx_spi_priv = NULL;
 	enum nrf_wifi_status status = NRF_WIFI_STATUS_FAIL;
-	unsigned int irq_flags = IRQ_TYPE_EDGE_RISING;
+	unsigned int irq_flags = IRQ_TYPE_LEVEL_HIGH;
 	int ret = -1;
 	int irq_number;
 	struct gpio_desc *host_irq;

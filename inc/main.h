@@ -16,7 +16,7 @@
 #include <net/cfg80211.h>
 #include "fmac_structs.h"
 
-#define NRF_WIFI_FMAC_DRV_VER "1.0.0.0"
+#define NRF_WIFI_FMAC_DRV_VER "1.0.1.0"
 
 enum connect_status {
 	DISCONNECTED,
