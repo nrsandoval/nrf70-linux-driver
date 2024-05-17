@@ -122,6 +122,31 @@ out:
 }
 #endif
 
+static void nrf_wifi_ethtool_get_drvinfo(struct net_device *net_device,
+										struct ethtool_drvinfo *info)
+{
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	unsigned int fw_ver = 0;
+	enum nrf_wifi_status status = NRF_WIFI_STATUS_FAIL;
+
+	vif_ctx_lnx = netdev_priv(net_device);
+
+	strscpy(info->driver, KBUILD_MODNAME, sizeof(info->driver));
+	strscpy(info->version, NRF_WIFI_FMAC_DRV_VER, sizeof(info->version));
+
+	status = nrf_wifi_fmac_ver_get(vif_ctx_lnx->rpu_ctx->rpu_ctx, &fw_ver);
+
+	if (status == NRF_WIFI_STATUS_SUCCESS) {
+		snprintf(info->fw_version, sizeof(info->fw_version), "%d.%d.%d.%d", 
+			NRF_WIFI_UMAC_VER(fw_ver), NRF_WIFI_UMAC_VER_MAJ(fw_ver),
+			NRF_WIFI_UMAC_VER_MIN(fw_ver), NRF_WIFI_UMAC_VER_EXTRA(fw_ver));
+	}
+}
+
+static const struct ethtool_ops nrf_wifi_ethtool_ops = {
+	.get_drvinfo = nrf_wifi_ethtool_get_drvinfo
+};
+
 int nrf_wifi_netdev_open(struct net_device *netdev)
 {
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
@@ -131,6 +156,8 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
+
+	netdev->ethtool_ops = &nrf_wifi_ethtool_ops;
 
 	vif_info = kzalloc(sizeof(*vif_info), GFP_KERNEL);
 
