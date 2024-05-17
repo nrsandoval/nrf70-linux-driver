@@ -175,7 +175,7 @@ endif
 
 ccflags-y += -Werror
 
-NAME = nrf$(DRV_FUNC_NAME)$(DRV_MODE_NAME)
+NAME = nrf7002_wmac
 
 obj-m += $(NAME).o
 
