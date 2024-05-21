@@ -120,9 +120,10 @@ out:
 	return status;
 }
 
-int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy, struct net_device *netdev,
-			      enum nl80211_iftype iftype,
-			      struct vif_params *params)
+int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
+					struct net_device *netdev,
+			      	enum nl80211_iftype iftype,
+			      	struct vif_params *params)
 {
 	struct wireless_dev *wdev = NULL;
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
@@ -822,6 +823,14 @@ int nrf_wifi_cfg80211_set_txq_params(struct wiphy *wiphy,
 				     struct ieee80211_txq_params *params)
 {
 	pr_err("\n\n%s: Done in SET_BSS\n\n\n", __func__);
+
+	return 0;
+}
+
+int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
+				       struct cfg80211_chan_def *chandef)
+{
+	pr_info("setting monitor channel");
 
 	return 0;
 }
@@ -2284,6 +2293,7 @@ struct cfg80211_ops cfg80211_ops = {
 	.change_bss = nrf_wifi_cfg80211_chg_bss,
 	.set_txq_params = nrf_wifi_cfg80211_set_txq_params,
 
+	.set_monitor_channel = nrf_wifi_cfg80211_set_monitor_channel,
 	.scan = nrf_wifi_cfg80211_scan,
 	.auth = nrf_wifi_cfg80211_auth,
 	.assoc = nrf_wifi_cfg80211_assoc,
@@ -2435,7 +2445,10 @@ void wiphy_init(struct wiphy *wiphy)
 
 	wiphy->interface_modes =
 		BIT(NL80211_IFTYPE_STATION) | BIT(NL80211_IFTYPE_AP) |
-		BIT(NL80211_IFTYPE_P2P_GO) | BIT(NL80211_IFTYPE_P2P_CLIENT);
+		BIT(NL80211_IFTYPE_P2P_GO) | BIT(NL80211_IFTYPE_P2P_CLIENT) |
+		BIT(NL80211_IFTYPE_MONITOR);
+
+	wiphy->software_iftypes |= BIT(NL80211_IFTYPE_MONITOR);
 
 	wiphy->max_scan_ssids = 4;
 	wiphy->max_scan_ie_len = IEEE80211_MAX_DATA_LEN;

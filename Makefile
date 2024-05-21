@@ -144,7 +144,8 @@ ccflags-y += \
 	     -DCONFIG_NRF700X_TX_MAX_DATA_SIZE=1600 \
 	     -DCONFIG_NRF_WIFI_IFACE_MTU=1500 \
 	     -DCONFIG_NRF700X_MAX_TX_PENDING_QLEN=48 \
-	     -DCONFIG_NRF700X_RPU_PS_IDLE_TIMEOUT_MS=10
+	     -DCONFIG_NRF700X_RPU_PS_IDLE_TIMEOUT_MS=10 \
+		 -DCONFIG_NRF700X_RAW_DATA_RX=1
 
 ifneq ($(MODE), RADIO-TEST)
 ccflags-y += -DCONFIG_NRF700X_DATA_TX
@@ -157,6 +158,7 @@ OBJS += $(OSAL_DIR)/hw_if/hal/src/hpqm.o
 # Driver debugging
 # Use one of DBG(4)/INF(3)/ERR(1)
 ccflags-y += -DCONFIG_WIFI_NRF700X_LOG_LEVEL=3
+#ccflags-y += -DCONFIG_NRF700X_LOG_VERBOSE=1
 
 # Scan only mode, disabled by default
 # ccflags-y += -DCONFIG_NRF700X_SCAN_ONLY

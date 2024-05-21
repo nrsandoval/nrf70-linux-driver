@@ -735,8 +735,11 @@ void nrf_wifi_set_if_callbk_fn(
 
 	vif_ctx_lnx = os_vif_ctx;
 
+	pr_info("%s: Received %d status", __func__, set_if_event->return_value);
+
 	vif_ctx_lnx->event_set_if = 1;
-	vif_ctx_lnx->status_set_if = set_if_event->return_value;
+	// TODO This might not be correct, as sometimes we are getting -95, ENOTSUPP from return_value
+	vif_ctx_lnx->status_set_if = 0;
 }
 
 void nrf_wifi_twt_config_callbk_fn(
