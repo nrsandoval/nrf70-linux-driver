@@ -198,6 +198,7 @@ int rpu_enable(void *dev)
 int rpu_disable(void *dev)
 {
 	int err = -1;
+	pr_info("rpu disabled\n");
 
 	if (bucken) {
 		gpiod_set_value(bucken, 0);

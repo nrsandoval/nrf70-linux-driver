@@ -29,12 +29,18 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	unsigned char mac_addr[ETH_ALEN];
 
 	rpu_ctx_lnx = wiphy_priv(wiphy);
+	pr_info("%s: add vif\n", __func__);
 
-	if (nrf_wifi_fmac_mac_addr(rpu_ctx_lnx->rpu_ctx, mac_addr) !=
-	    NRF_WIFI_STATUS_SUCCESS) {
-		pr_err("%s: Unable to get mac address for VIF\n", __func__);
+	if (mac_addr == NULL) {
+		pr_err("%s: Mac address is null\n", __func__);
 		goto err;
 	}
+
+	// if (nrf_wifi_fmac_mac_addr(rpu_ctx_lnx->rpu_ctx, mac_addr) !=
+	//     NRF_WIFI_STATUS_SUCCESS) {
+	// 	pr_err("%s: Unable to get mac address for VIF\n", __func__);
+	// 	goto err;
+	// }
 
 	vif_ctx_lnx =
 		nrf_wifi_wlan_fmac_add_vif(rpu_ctx_lnx, name, mac_addr, type);
@@ -44,6 +50,7 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 		goto err;
 	}
 
+	pr_info("%s: alloc", __func__);
 	add_vif_info = kzalloc(sizeof(*add_vif_info), GFP_KERNEL);
 
 	if (!add_vif_info) {
@@ -56,7 +63,7 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	memcpy(add_vif_info->ifacename, name, strlen(name));
 
 	ether_addr_copy(add_vif_info->mac_addr, mac_addr);
-
+	pr_info("%s: fmac_add_vif\n", __func__);
 	vif_ctx_lnx->if_idx = nrf_wifi_fmac_add_vif(rpu_ctx_lnx->rpu_ctx,
 						    vif_ctx_lnx, add_vif_info);
 
@@ -73,6 +80,7 @@ err:
 		vif_ctx_lnx = NULL;
 	}
 out:
+	pr_info("%s: leaving\n", __func__);
 	if (add_vif_info)
 		kfree(add_vif_info);
 
@@ -147,8 +155,14 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	vif_info->iftype = iftype;
 	vif_info->nrf_wifi_use_4addr = params->use_4addr;
 
-	status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
-				       vif_ctx_lnx->if_idx, vif_info);
+	if (iftype == NL80211_IFTYPE_MONITOR) {
+		status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
+										vif_ctx_lnx->if_idx, NRF_WIFI_MONITOR_MODE);
+		goto update_if;
+	} else {
+		status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
+				       	vif_ctx_lnx->if_idx, vif_info);
+	}
 
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_set_vif failed\n", __func__);
@@ -172,6 +186,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 		goto out;
 	}
 
+update_if:
 	nrf_wifi_fmac_vif_update_if_type(rpu_ctx_lnx->rpu_ctx,
 					 vif_ctx_lnx->if_idx, iftype);
 
@@ -1822,6 +1837,8 @@ int nrf_wifi_cfg80211_set_qos_map(struct wiphy *wiphy,
 		goto out;
 	}
 
+	pr_info("%s: Why???", __func__);
+
 	rpu_ctx_lnx = wiphy_priv(wiphy);
 	vif_ctx_lnx = netdev_priv(netdev);
 
@@ -2313,7 +2330,7 @@ struct cfg80211_ops cfg80211_ops = {
 	.resume = nrf_wifi_cfg80211_resume,
 	.set_wakeup = nrf_wifi_cfg80211_set_wakeup,
 	.set_power_mgmt = nrf_wifi_cfg80211_set_power_mgmt,
-	.set_qos_map = nrf_wifi_cfg80211_set_qos_map,
+	// .set_qos_map = nrf_wifi_cfg80211_set_qos_map,
 
 	.get_station = nrf_wifi_cfg80211_get_station,
 	.get_tx_power = nrf_wifi_cfg80211_get_tx_power,

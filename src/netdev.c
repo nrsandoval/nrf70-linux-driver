@@ -281,15 +281,15 @@ void nrf_wifi_netdev_frame_rx_callbk_fn(void *os_vif_ctx, void *frm)
 	netif_rx(skb);
 }
 
-void nrf_wifi_netdev_change_rx_flags(struct net_device *dev, int flags)
-{
-	pr_info("change rx flags");
-}
+// void nrf_wifi_netdev_change_rx_flags(struct net_device *dev, int flags)
+// {
+// 	pr_info("%s: change rx flags=0x%02x", __func__, flags);
+// }
 
-void nrf_wifi_netdev_set_rx_mode(struct net_device *dev)
-{
-	pr_info("Set rx mode");
-}
+// void nrf_wifi_netdev_set_rx_mode(struct net_device *dev)
+// {
+// 	pr_info("%s: Set rx mode", __func__);
+// }
 
 enum nrf_wifi_status nrf_wifi_netdev_if_state_chg_callbk_fn(
 	void *vif_ctx, enum nrf_wifi_fmac_if_carr_state if_state)
@@ -326,8 +326,8 @@ const struct net_device_ops nrf_wifi_netdev_ops = {
 #ifdef CONFIG_NRF700X_DATA_TX
 	.ndo_start_xmit = nrf_wifi_netdev_start_xmit,
 #endif /* CONFIG_NRF700X_DATA_TX */
-	.ndo_change_rx_flags = nrf_wifi_netdev_change_rx_flags,
-	.ndo_set_rx_mode = nrf_wifi_netdev_set_rx_mode,
+	// .ndo_change_rx_flags = nrf_wifi_netdev_change_rx_flags,
+	// .ndo_set_rx_mode = nrf_wifi_netdev_set_rx_mode,
 };
 
 struct nrf_wifi_fmac_vif_ctx_lnx *
@@ -340,8 +340,9 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
 	int ret = 0;
 
-	ASSERT_RTNL();
+	// ASSERT_RTNL();
 
+	pr_info("%s: alloc\n", __func__);
 	netdev = alloc_etherdev(sizeof(struct nrf_wifi_fmac_vif_ctx_lnx));
 
 	if (!netdev) {
@@ -376,7 +377,9 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	INIT_WORK(&vif_ctx_lnx->ws_queue_monitor,
 		  nrf_cfg80211_queue_monitor_routine);
 #endif
-	ret = register_netdevice(netdev);
+	pr_info("%s: registering\n", __func__);
+	ret = register_netdev(netdev);
+	pr_info("%s: Finished\n", __func__);
 
 	if (ret) {
 		pr_err("%s: Unable to register netdev, ret=%d\n", __func__,
@@ -391,6 +394,7 @@ err_reg_netdev:
 		vif_ctx_lnx = NULL;
 	}
 out:
+	pr_info("%s: Leaving\n", __func__);
 	return vif_ctx_lnx;
 }
 

@@ -147,6 +147,7 @@ void nrf_wifi_wlan_fmac_del_vif(struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx)
 {
 	struct net_device *netdev = NULL;
 	struct wireless_dev *wdev = NULL;
+	pr_info("%s: del vif\n", __func__);
 
 	netdev = vif_ctx_lnx->netdev;
 
@@ -443,17 +444,17 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 		goto out;
 	}
 
-	/* Create a default interface and register it to the netdev stack.
-	 * We need to take a rtnl_lock since the netdev stack expects it. In the
-	 * regular case this lock is taken by the cfg80211, but in the case of
-	 * the default interface we need to take it since we are initiating the
-	 * creation of the interface */
-	rtnl_lock();
+	// /* Create a default interface and register it to the netdev stack.
+	//  * We need to take a rtnl_lock since the netdev stack expects it. In the
+	//  * regular case this lock is taken by the cfg80211, but in the case of
+	//  * the default interface we need to take it since we are initiating the
+	//  * creation of the interface */
+	// rtnl_lock();
 
 	vif_ctx_lnx = nrf_wifi_wlan_fmac_add_vif(
-		rpu_ctx_lnx, "nrf_wifi", base_mac_addr, NL80211_IFTYPE_STATION);
+		rpu_ctx_lnx, "nrf_wifi", base_mac_addr, NL80211_IFTYPE_MONITOR);//NL80211_IFTYPE_STATION);
 
-	rtnl_unlock();
+	// rtnl_unlock();
 
 	if (!vif_ctx_lnx) {
 		pr_err("%s: Unable to register default interface to stack\n",
@@ -463,7 +464,7 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 
 	memset(&add_vif_info, 0, sizeof(add_vif_info));
 
-	add_vif_info.iftype = NL80211_IFTYPE_STATION;
+	add_vif_info.iftype = NL80211_IFTYPE_MONITOR;//NL80211_IFTYPE_STATION;
 
 	memcpy(add_vif_info.ifacename, "wlan0", strlen("wlan0"));
 
@@ -739,7 +740,7 @@ void nrf_wifi_set_if_callbk_fn(
 
 	vif_ctx_lnx->event_set_if = 1;
 	// TODO This might not be correct, as sometimes we are getting -95, ENOTSUPP from return_value
-	vif_ctx_lnx->status_set_if = 0;
+	vif_ctx_lnx->status_set_if = set_if_event->return_value;
 }
 
 void nrf_wifi_twt_config_callbk_fn(
