@@ -845,7 +845,15 @@ int nrf_wifi_cfg80211_set_txq_params(struct wiphy *wiphy,
 int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
 				       struct cfg80211_chan_def *chandef)
 {
-	pr_info("setting monitor channel");
+	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
+
+	rpu_ctx_lnx = wiphy_priv(wiphy);
+
+	// TODO for now only use channel 1
+	if (nrf_wifi_fmac_set_channel(rpu_ctx_lnx->rpu_ctx, 0, 1) != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: Not able to set channel 1", __func__);
+		return -EINVAL;
+	}
 
 	return 0;
 }

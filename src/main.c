@@ -449,12 +449,12 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	//  * regular case this lock is taken by the cfg80211, but in the case of
 	//  * the default interface we need to take it since we are initiating the
 	//  * creation of the interface */
-	// rtnl_lock();
+	rtnl_lock();
 
 	vif_ctx_lnx = nrf_wifi_wlan_fmac_add_vif(
 		rpu_ctx_lnx, "nrf_wifi", base_mac_addr, NL80211_IFTYPE_MONITOR);//NL80211_IFTYPE_STATION);
 
-	// rtnl_unlock();
+	rtnl_unlock();
 
 	if (!vif_ctx_lnx) {
 		pr_err("%s: Unable to register default interface to stack\n",
@@ -727,6 +727,49 @@ static void nrf_wifi_process_rssi_from_rx(void *os_vif_ctx, signed short signal)
 }
 #endif /* CONFIG_NRF700X_STA_MODE */
 
+void nrf_wifi_event_get_reg_callbk_fn(void *vif_ctx,
+				struct nrf_wifi_reg *get_reg_event,
+				unsigned int event_len)
+{
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
+
+	pr_info("%s: alpha2 = %c%c", __func__,
+			get_reg_event->nrf_wifi_alpha2[0],
+			get_reg_event->nrf_wifi_alpha2[1]);
+	
+	vif_ctx_lnx = vif_ctx;
+	if (!vif_ctx_lnx) {
+		pr_err("%s: vif_ctx_lnx is NULL\n", __func__);
+		return;
+	}
+
+	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
+	if (!rpu_ctx_lnx) {
+		pr_err("%s: rpu_ctx_lnx is NULL\n", __func__);
+		return;
+	}
+
+	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
+	if (fmac_dev_ctx->alpha2_valid) {
+		pr_err("%s: Unsolicited regulator get!\n", __func__);
+		return;
+	}
+
+	memcpy(&fmac_dev_ctx->alpha2,
+			&get_reg_event->nrf_wifi_alpha2,
+			sizeof(get_reg_event->nrf_wifi_alpha2));
+
+	fmac_dev_ctx->reg_chan_count = get_reg_event->num_channels;
+	memcpy(fmac_dev_ctx->reg_chan_info,
+			&get_reg_event->chn_info,
+			fmac_dev_ctx->reg_chan_count *
+			sizeof(struct nrf_wifi_get_reg_chn_info));
+
+	fmac_dev_ctx->alpha2_valid = true;
+}
+
 void nrf_wifi_set_if_callbk_fn(
 	void *os_vif_ctx,
 	struct nrf_wifi_umac_event_set_interface *set_if_event,
@@ -742,6 +785,15 @@ void nrf_wifi_set_if_callbk_fn(
 	// TODO This might not be correct, as sometimes we are getting -95, ENOTSUPP from return_value
 	vif_ctx_lnx->status_set_if = set_if_event->return_value;
 }
+
+#if defined(CONFIG_NRF700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
+void nrf_wifi_if_sniffer_rx_frm(void *os_vif_ctx, void *frm,
+				struct raw_rx_pkt_header *raw_rx_hdr,
+				bool pkt_free)
+{
+	pr_info("%s: sniffer\n", __func__);
+}
+#endif
 
 void nrf_wifi_twt_config_callbk_fn(
 	void *os_vif_ctx, struct nrf_wifi_umac_cmd_config_twt *twt_cfg_event,
@@ -900,10 +952,14 @@ int __init nrf_wifi_init_lnx(void)
 	callbk_fns.rx_frm_callbk_fn = &nrf_wifi_netdev_frame_rx_callbk_fn;
 	callbk_fns.get_station_callbk_fn = &nrf_wifi_get_station_callbk_fn;
 	callbk_fns.disp_scan_res_callbk_fn = &nrf_wifi_disp_scan_res_callbk_fn;
+	callbk_fns.event_get_reg = &nrf_wifi_event_get_reg_callbk_fn;
 #ifdef CONFIG_WIFI_MGMT_RAW_SCAN_RESULTS
 	callbk_fns.rx_bcn_prb_resp_callbk_fn =
 		&nrf_wifi_cfg80211_rx_bcn_prb_rsp_callbk_fn;
 #endif /* CONFIG_WIFI_MGMT_RAW_SCAN_RESULTS */
+#if defined(CONFIG_NRFX700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
+	callbk_fns.rx_sniffer_frm_callbk_fn = &nrf_wifi_if_sniffer_rx_frm;
+#endif
 	callbk_fns.set_if_callbk_fn = &nrf_wifi_set_if_callbk_fn;
 	callbk_fns.chnl_get_callbk_fn = &nrf_wifi_chnl_get_callbk_fn;
 	callbk_fns.tx_pwr_get_callbk_fn = &nrf_wifi_tx_pwr_get_callbk_fn;

@@ -8,6 +8,7 @@
 #include <net/cfg80211.h>
 #include <linux/etherdevice.h>
 #include <linux/rtnetlink.h>
+#include <uapi/linux/if_arp.h>
 
 #include "host_rpu_umac_if.h"
 #include "main.h"
@@ -152,6 +153,7 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
+	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
 	int status = -1;
 
 	vif_ctx_lnx = netdev_priv(netdev);
@@ -175,6 +177,23 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
+		goto out;
+	}
+
+	reg_domain_info.alpha2[0] = '0';
+	reg_domain_info.alpha2[1] = '0';
+	reg_domain_info.force = false;
+
+	status = nrf_wifi_fmac_set_reg(rpu_ctx_lnx->rpu_ctx, &reg_domain_info);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_reg failed\n", __func__);
+		goto out;
+	}
+
+	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
+						 vif_ctx_lnx->if_idx, NRF_WIFI_MONITOR_MODE);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_mode failed\n", __func__);
 		goto out;
 	}
 
@@ -340,7 +359,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
 	int ret = 0;
 
-	// ASSERT_RTNL();
+	ASSERT_RTNL();
 
 	pr_info("%s: alloc\n", __func__);
 	netdev = alloc_etherdev(sizeof(struct nrf_wifi_fmac_vif_ctx_lnx));
@@ -367,6 +386,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	netdev->needed_headroom = TX_BUF_HEADROOM;
 
 	netdev->priv_destructor = free_netdev;
+	netdev->type = ARPHRD_IEEE80211_RADIOTAP;
 #ifdef CONFIG_NRF700X_DATA_TX
 	vif_ctx_lnx->data_txq =
 		nrf_wifi_utils_q_alloc(fmac_dev_ctx->fpriv->opriv);
@@ -378,7 +398,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 		  nrf_cfg80211_queue_monitor_routine);
 #endif
 	pr_info("%s: registering\n", __func__);
-	ret = register_netdev(netdev);
+	ret = register_netdevice(netdev);
 	pr_info("%s: Finished\n", __func__);
 
 	if (ret) {
