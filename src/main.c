@@ -791,7 +791,18 @@ void nrf_wifi_if_sniffer_rx_frm(void *os_vif_ctx, void *frm,
 				struct raw_rx_pkt_header *raw_rx_hdr,
 				bool pkt_free)
 {
-	pr_info("%s: sniffer\n", __func__);
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct sk_buff *skb = frm;
+	struct net_device *netdev = NULL;
+
+	vif_ctx_lnx = os_vif_ctx;
+	netdev = vif_ctx_lnx->netdev;
+
+	skb->dev = netdev;
+	skb->protocol = eth_type_trans(skb, skb->dev);
+	skb->ip_summed = CHECKSUM_UNNECESSARY;
+
+	netif_rx(skb);
 }
 #endif
 
