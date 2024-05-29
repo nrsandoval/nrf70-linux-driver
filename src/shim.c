@@ -370,6 +370,16 @@ static void shim_nbuf_set_chksum_done(void *nbuf, unsigned char chksum_done)
 	skb->csum_complete_sw = (bool)chksum_done;
 }
 
+#if defined(CONFIG_NRF700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
+void *net_raw_pkt_from_nbuf(void *iface, void *frm,
+			unsigned short raw_hdr_len,
+			void* raw_rx_hdr,
+			bool pkt_free)
+{
+	return NULL;
+}
+#endif
+
 static void *shim_llist_node_alloc(void)
 {
 	struct shim_llist_node *llist_node = NULL;

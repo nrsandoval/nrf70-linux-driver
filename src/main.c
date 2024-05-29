@@ -786,26 +786,6 @@ void nrf_wifi_set_if_callbk_fn(
 	vif_ctx_lnx->status_set_if = set_if_event->return_value;
 }
 
-#if defined(CONFIG_NRF700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
-void nrf_wifi_if_sniffer_rx_frm(void *os_vif_ctx, void *frm,
-				struct raw_rx_pkt_header *raw_rx_hdr,
-				bool pkt_free)
-{
-	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
-	struct sk_buff *skb = frm;
-	struct net_device *netdev = NULL;
-
-	vif_ctx_lnx = os_vif_ctx;
-	netdev = vif_ctx_lnx->netdev;
-
-	skb->dev = netdev;
-	skb->protocol = eth_type_trans(skb, skb->dev);
-	skb->ip_summed = CHECKSUM_UNNECESSARY;
-
-	netif_rx(skb);
-}
-#endif
-
 void nrf_wifi_twt_config_callbk_fn(
 	void *os_vif_ctx, struct nrf_wifi_umac_cmd_config_twt *twt_cfg_event,
 	unsigned int event_len)
@@ -969,7 +949,7 @@ int __init nrf_wifi_init_lnx(void)
 		&nrf_wifi_cfg80211_rx_bcn_prb_rsp_callbk_fn;
 #endif /* CONFIG_WIFI_MGMT_RAW_SCAN_RESULTS */
 #if defined(CONFIG_NRFX700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
-	callbk_fns.rx_sniffer_frm_callbk_fn = &nrf_wifi_if_sniffer_rx_frm;
+	callbk_fns.rx_sniffer_frm_callbk_fn = &nrf_wifi_netdev_rx_sniffer_frm;
 #endif
 	callbk_fns.set_if_callbk_fn = &nrf_wifi_set_if_callbk_fn;
 	callbk_fns.chnl_get_callbk_fn = &nrf_wifi_chnl_get_callbk_fn;

@@ -300,6 +300,30 @@ void nrf_wifi_netdev_frame_rx_callbk_fn(void *os_vif_ctx, void *frm)
 	netif_rx(skb);
 }
 
+void nrf_wifi_netdev_rx_sniffer_frm(void *os_vif_ctx, void *frm,
+				struct raw_rx_pkt_header *raw_rx_hdr,
+				bool pkt_free)
+{
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct sk_buff *skb = frm;
+	struct net_device *netdev = NULL;
+
+	vif_ctx_lnx = os_vif_ctx;
+	netdev = vif_ctx_lnx->netdev;
+
+	skb->dev = netdev;
+	skb->protocol = eth_type_trans(skb, skb->dev);
+	skb->ip_summed = CHECKSUM_UNNECESSARY;
+	skb->pkt_type = PACKET_OTHERHOST;
+	// skb->protocol = htons(0x0019); /* ETH_P_80211_RAW */
+
+	netif_rx(skb);
+
+// 	if (pkt_free) {
+// 		kfree_skb(skb);
+// 	}
+}
+
 // void nrf_wifi_netdev_change_rx_flags(struct net_device *dev, int flags)
 // {
 // 	pr_info("%s: change rx flags=0x%02x", __func__, flags);
@@ -386,7 +410,8 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	netdev->needed_headroom = TX_BUF_HEADROOM;
 
 	netdev->priv_destructor = free_netdev;
-	netdev->type = ARPHRD_IEEE80211_RADIOTAP;
+	// netdev->type = ARPHRD_IEEE80211_RADIOTAP;
+	netdev->type = ARPHRD_IEEE80211;
 #ifdef CONFIG_NRF700X_DATA_TX
 	vif_ctx_lnx->data_txq =
 		nrf_wifi_utils_q_alloc(fmac_dev_ctx->fpriv->opriv);

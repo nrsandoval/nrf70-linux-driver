@@ -23,5 +23,11 @@ void nrf_wifi_netdev_frame_rx_callbk_fn(void *vif_ctx, void *frm);
 
 enum nrf_wifi_status nrf_wifi_netdev_if_state_chg_callbk_fn(
 	void *vif_ctx, enum nrf_wifi_fmac_if_carr_state if_state);
+
+#if defined(CONFIG_NRF700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
+void nrf_wifi_netdev_rx_sniffer_frm(void *os_vif_ctx, void *frm,
+	struct raw_rx_pkt_header *raw_rx_hdr,
+	bool pkt_free);
+#endif /* CONFIG_NRF700X_RAW_DATA_RX || CONFIG_NRF700X_PROMISC_DATA_RX */
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
 #endif /* __NET_STACK_H__ */
