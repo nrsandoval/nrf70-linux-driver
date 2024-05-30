@@ -4,11 +4,11 @@
 manifest:
   remotes:
     - name: ncs
-      url-base: https://github.com/nrfconnect
+      url-base: https://github.com/nrsandoval
 
   projects:
     # TODO: Once west supports sparse checkout, we should use it here.
     - name: nrfxlib
       remote: ncs
       repo-path: sdk-nrfxlib
-      revision: 2fe3e8248e16a52cf530358815d19617cb96c1d1
+      revision: nrf70-linux
