@@ -68,4 +68,12 @@ struct shim_bus_spi_dev_ctx {
 	bool is_msi;
 };
 
+
+#if defined(CONFIG_NRF700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
+void *skb_raw_pkt_from_nbuf(void *iface, void *frm,
+			unsigned short raw_hdr_len,
+			void* raw_rx_hdr,
+			bool pkt_free);
+#endif /* CONFIG_NRF700X_RAW_DATA_RX || CONFIG_NRF700X_PROMISC_DATA_RX */
+
 #endif /* __SHIM_H__ */

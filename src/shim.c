@@ -371,14 +371,53 @@ static void shim_nbuf_set_chksum_done(void *nbuf, unsigned char chksum_done)
 }
 
 #if defined(CONFIG_NRF700X_RAW_DATA_RX) || defined(CONFIG_NRF700X_PROMISC_DATA_RX)
-void *net_raw_pkt_from_nbuf(void *iface, void *frm,
+void *skb_raw_pkt_from_nbuf(void *iface, void *frm,
 			unsigned short raw_hdr_len,
 			void* raw_rx_hdr,
 			bool pkt_free)
 {
-	return NULL;
+	// unsigned char *skb_data;
+	// unsigned char *data = NULL;
+	// unsigned int skb_len;
+	// unsigned int total_len;
+	struct net_device *netdev = iface;
+	struct sk_buff *skb = frm;
+
+	if (!skb) {
+		pr_err("%s: Received sk_buff is NULL", __func__);
+		return NULL;
+	}
+
+	// skb_len = shim_nbuf_data_size(skb);
+	// skb_data = shim_nbuf_data_get(skb);
+	// total_len = raw_hdr_len + skb_len;
+
+	// data = (unsigned char *)kmalloc(total_len, GFP_KERNEL);
+	// if (!data) {
+	// 	pr_err("%s: Unable to allocate memory for sniffer data packet", __func__);
+	// 	skb = NULL;
+	// 	goto out;
+	// }
+
+	// memcpy(data, raw_rx_hdr, raw_hdr_len);
+	// memcpy((data+raw_hdr_len), skb_data, skb_len);
+
+	// memcpy(skb_data, data, total_len);
+	skb_set_tail_pointer(skb, shim_nbuf_data_size(skb));
+	// skb->len = total_len;
+
+	skb->dev = netdev;
+	skb->ip_summed = CHECKSUM_NONE;
+	skb->pkt_type = PACKET_OTHERHOST;
+	skb->protocol = eth_type_trans(skb, skb->dev);
+// out:
+	// if (data != NULL) {
+	// 	kfree(data);
+	// }
+
+	return skb;
 }
-#endif
+#endif /* CONFIG_NRF700X_RAW_DATA_RX || CONFIG_NRF700X_PROMISC_DATA_RX */
 
 static void *shim_llist_node_alloc(void)
 {

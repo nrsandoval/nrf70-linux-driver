@@ -158,7 +158,7 @@ OBJS += $(OSAL_DIR)/hw_if/hal/src/hpqm.o
 
 # Driver debugging
 # Use one of DBG(4)/INF(3)/ERR(1)
-ccflags-y += -DCONFIG_WIFI_NRF700X_LOG_LEVEL=4
+ccflags-y += -DCONFIG_WIFI_NRF700X_LOG_LEVEL=3
 ccflags-y += -DCONFIG_NRF700X_LOG_VERBOSE=1
 
 # Scan only mode, disabled by default

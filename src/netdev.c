@@ -15,6 +15,7 @@
 #include "fmac_main.h"
 #include "fmac_api.h"
 #include "fmac_util.h"
+#include "shim.h"
 #include "queue.h"
 
 #ifdef CONFIG_NRF700X_DATA_TX
@@ -197,6 +198,12 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 		goto out;
 	}
 
+	status = nrf_wifi_fmac_set_packet_filter(rpu_ctx_lnx->rpu_ctx, NRF_WIFI_PACKET_FILTER_ALL,
+										vif_ctx_lnx->if_idx, 255);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_packet_filter failed\n", __func__);
+	}
+
 out:
 	if (vif_info)
 		kfree(vif_info);
@@ -308,20 +315,27 @@ void nrf_wifi_netdev_rx_sniffer_frm(void *os_vif_ctx, void *frm,
 	struct sk_buff *skb = frm;
 	struct net_device *netdev = NULL;
 
+	if (skb == NULL) {
+		pr_info("%s: skb==NULL something wrong\n", __func__);
+		return;
+	}
+
 	vif_ctx_lnx = os_vif_ctx;
 	netdev = vif_ctx_lnx->netdev;
 
-	skb->dev = netdev;
-	skb->protocol = eth_type_trans(skb, skb->dev);
-	skb->ip_summed = CHECKSUM_UNNECESSARY;
-	skb->pkt_type = PACKET_OTHERHOST;
-	// skb->protocol = htons(0x0019); /* ETH_P_80211_RAW */
+	skb = (struct sk_buff *)skb_raw_pkt_from_nbuf(netdev, skb, sizeof(struct raw_rx_pkt_header),
+								raw_rx_hdr, pkt_free);
+	if (skb == NULL) {
+		pr_info("%s: unable to convert sniffer packet\n", __func__);
+		goto out;
+	}
 
 	netif_rx(skb);
 
-// 	if (pkt_free) {
-// 		kfree_skb(skb);
-// 	}
+out:
+	if (pkt_free) {
+		// kfree_skb(skb);
+	}
 }
 
 // void nrf_wifi_netdev_change_rx_flags(struct net_device *dev, int flags)
