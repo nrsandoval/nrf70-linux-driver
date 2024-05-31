@@ -86,6 +86,8 @@ netdev_tx_t nrf_wifi_netdev_start_xmit(struct sk_buff *skb,
 	int status = -1;
 	int ret = NETDEV_TX_OK;
 
+	pr_info("%s: Start transmit\n", __func__);
+
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 
@@ -154,8 +156,49 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
+	int status = -1;
+	pr_info("%s: opening\n", __func__);
+
+	vif_ctx_lnx = netdev_priv(netdev);
+	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
+
+	netdev->ethtool_ops = &nrf_wifi_ethtool_ops;
+
+	vif_info = kzalloc(sizeof(*vif_info), GFP_KERNEL);
+
+	if (!vif_info) {
+		pr_err("%s: Unable to allocate memory\n", __func__);
+		goto out;
+	}
+
+	vif_info->state = 1;
+
+	vif_info->if_index = vif_ctx_lnx->if_idx;
+
+	status = nrf_wifi_fmac_chg_vif_state(rpu_ctx_lnx->rpu_ctx,
+					     vif_ctx_lnx->if_idx, vif_info);
+
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
+		goto out;
+	}
+	
+out:
+	if (vif_info)
+		kfree(vif_info);
+
+	pr_info("%s: opening finished\n", __func__);
+	return status;
+}
+
+int nrf_wifi_monitor_netdev_open(struct net_device *netdev)
+{
+	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
 	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
 	int status = -1;
+	pr_info("%s: opening\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -217,6 +260,8 @@ int nrf_wifi_netdev_close(struct net_device *netdev)
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
 	int status = -1;
+	
+	pr_info("%s: Closing\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -247,6 +292,7 @@ out:
 	if (vif_info)
 		kfree(vif_info);
 
+	pr_info("%s: Closing finished\n", __func__);
 	return status;
 }
 
@@ -338,15 +384,16 @@ out:
 	}
 }
 
-// void nrf_wifi_netdev_change_rx_flags(struct net_device *dev, int flags)
-// {
-// 	pr_info("%s: change rx flags=0x%02x", __func__, flags);
-// }
+void nrf_wifi_netdev_change_rx_flags(struct net_device *dev, int flags)
+{
+	pr_info("%s: change rx flags=0x%04x", __func__, flags);
+}
 
-// void nrf_wifi_netdev_set_rx_mode(struct net_device *dev)
-// {
-// 	pr_info("%s: Set rx mode", __func__);
-// }
+void nrf_wifi_netdev_set_rx_mode(struct net_device *dev)
+{
+	
+	pr_info("%s: Set rx mode", __func__);
+}
 
 enum nrf_wifi_status nrf_wifi_netdev_if_state_chg_callbk_fn(
 	void *vif_ctx, enum nrf_wifi_fmac_if_carr_state if_state)
@@ -383,8 +430,21 @@ const struct net_device_ops nrf_wifi_netdev_ops = {
 #ifdef CONFIG_NRF700X_DATA_TX
 	.ndo_start_xmit = nrf_wifi_netdev_start_xmit,
 #endif /* CONFIG_NRF700X_DATA_TX */
-	// .ndo_change_rx_flags = nrf_wifi_netdev_change_rx_flags,
-	// .ndo_set_rx_mode = nrf_wifi_netdev_set_rx_mode,
+#ifdef CONFIG_NRFX700X_RAW_DATA_RX
+	.ndo_change_rx_flags = nrf_wifi_netdev_change_rx_flags,
+	.ndo_set_rx_mode = nrf_wifi_netdev_set_rx_mode,
+#endif
+};
+
+const struct net_device_ops nrf_wifi_monitor_netdev_ops = {
+	.ndo_open = nrf_wifi_monitor_netdev_open,
+	.ndo_stop = nrf_wifi_netdev_close,
+#ifdef CONFIG_NRF700X_DATA_TX
+	.ndo_start_xmit = nrf_wifi_netdev_start_xmit,
+#endif /* CONFIG_NRF700X_DATA_TX */
+#ifdef CONFIG_NRFX700X_RAW_DATA_RX
+	.ndo_change_rx_flags = nrf_wifi_netdev_change_rx_flags,
+#endif
 };
 
 struct nrf_wifi_fmac_vif_ctx_lnx *
@@ -399,7 +459,6 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 
 	ASSERT_RTNL();
 
-	pr_info("%s: alloc\n", __func__);
 	netdev = alloc_etherdev(sizeof(struct nrf_wifi_fmac_vif_ctx_lnx));
 
 	if (!netdev) {
@@ -413,7 +472,13 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	vif_ctx_lnx->netdev = netdev;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
 
-	netdev->netdev_ops = &nrf_wifi_netdev_ops;
+	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
+		netdev->netdev_ops = &nrf_wifi_monitor_netdev_ops;
+		// netdev->type = ARPHRD_IEEE80211_RADIOTAP;
+		netdev->type = ARPHRD_IEEE80211;
+	} else {
+		netdev->netdev_ops = &nrf_wifi_netdev_ops;
+	}
 
 	strncpy(netdev->name, if_name, sizeof(netdev->name) - 1);
 
@@ -424,8 +489,6 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	netdev->needed_headroom = TX_BUF_HEADROOM;
 
 	netdev->priv_destructor = free_netdev;
-	// netdev->type = ARPHRD_IEEE80211_RADIOTAP;
-	netdev->type = ARPHRD_IEEE80211;
 #ifdef CONFIG_NRF700X_DATA_TX
 	vif_ctx_lnx->data_txq =
 		nrf_wifi_utils_q_alloc(fmac_dev_ctx->fpriv->opriv);
@@ -436,9 +499,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	INIT_WORK(&vif_ctx_lnx->ws_queue_monitor,
 		  nrf_cfg80211_queue_monitor_routine);
 #endif
-	pr_info("%s: registering\n", __func__);
 	ret = register_netdevice(netdev);
-	pr_info("%s: Finished\n", __func__);
 
 	if (ret) {
 		pr_err("%s: Unable to register netdev, ret=%d\n", __func__,
@@ -453,7 +514,6 @@ err_reg_netdev:
 		vif_ctx_lnx = NULL;
 	}
 out:
-	pr_info("%s: Leaving\n", __func__);
 	return vif_ctx_lnx;
 }
 
@@ -472,5 +532,20 @@ void nrf_wifi_netdev_del_vif(struct net_device *netdev)
 
 	unregister_netdevice(netdev);
 	netdev->ieee80211_ptr = NULL;
+}
+
+inline void nrf_wifi_netdev_chg_vif(struct net_device *netdev)
+{
+	struct wireless_dev* wdev;
+
+	wdev = netdev->ieee80211_ptr;
+
+	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
+		netdev->netdev_ops = &nrf_wifi_monitor_netdev_ops;
+		netdev->type = ARPHRD_IEEE80211;
+	} else {
+		netdev->netdev_ops = &nrf_wifi_netdev_ops;
+		netdev->type = 0;
+	}
 }
 #endif /* !CONFIG_NRF700X_RADIO_TEST */

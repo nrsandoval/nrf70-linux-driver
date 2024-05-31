@@ -140,6 +140,8 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	int status = -1;
 	unsigned int count = 50;
 
+	pr_info("%s: Start\n", __func__);
+
 	wdev = netdev->ieee80211_ptr;
 
 	vif_ctx_lnx = netdev_priv(netdev);
@@ -186,11 +188,12 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 		goto out;
 	}
 
-update_if:
 	nrf_wifi_fmac_vif_update_if_type(rpu_ctx_lnx->rpu_ctx,
 					 vif_ctx_lnx->if_idx, iftype);
 
+update_if:
 	wdev->iftype = iftype;
+	nrf_wifi_netdev_chg_vif(netdev);
 
 out:
 	vif_ctx_lnx->event_set_if = 0;
@@ -198,6 +201,7 @@ out:
 	if (vif_info)
 		kfree(vif_info);
 
+	pr_info("%s: Finished\n", __func__);
 	return status;
 }
 

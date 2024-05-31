@@ -19,6 +19,8 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 
 void nrf_wifi_netdev_del_vif(struct net_device *netdev);
 
+void nrf_wifi_netdev_chg_vif(struct net_device *netdev);
+
 void nrf_wifi_netdev_frame_rx_callbk_fn(void *vif_ctx, void *frm);
 
 enum nrf_wifi_status nrf_wifi_netdev_if_state_chg_callbk_fn(
