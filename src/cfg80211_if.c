@@ -137,6 +137,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_attr_info *vif_info = NULL;
+	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
 	int status = -1;
 	unsigned int count = 50;
 
@@ -157,15 +158,38 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	vif_info->iftype = iftype;
 	vif_info->nrf_wifi_use_4addr = params->use_4addr;
 
-	if (iftype == NL80211_IFTYPE_MONITOR) {
-		status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
-										vif_ctx_lnx->if_idx, NRF_WIFI_MONITOR_MODE);
-		goto update_if;
-	} else {
-		status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
-				       	vif_ctx_lnx->if_idx, vif_info);
+	reg_domain_info.alpha2[0] = '0';
+	reg_domain_info.alpha2[1] = '0';
+	reg_domain_info.force = false;
+
+	status = nrf_wifi_fmac_set_reg(rpu_ctx_lnx->rpu_ctx, &reg_domain_info);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_reg failed\n", __func__);
+		goto out;
 	}
 
+	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
+								vif_ctx_lnx->if_idx,
+								iftype == NL80211_IFTYPE_MONITOR ? NRF_WIFI_MONITOR_MODE : NRF_WIFI_STA_MODE);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_fmac_set_mode failed\n", __func__);
+		goto out;
+	}
+
+	status = nrf_wifi_fmac_set_packet_filter(rpu_ctx_lnx->rpu_ctx, NRF_WIFI_PACKET_FILTER_ALL,
+										vif_ctx_lnx->if_idx, 255);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_packet_filter failed\n", __func__);
+	}
+
+	if (iftype == NL80211_IFTYPE_MONITOR || 
+		(wdev->iftype == NL80211_IFTYPE_MONITOR)) {
+		// If we are switching from or to monitor mode, then we don't need to change virtual interface
+		goto update_if;
+	}
+
+	status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
+				       	vif_ctx_lnx->if_idx, vif_info);
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_set_vif failed\n", __func__);
 		goto out;

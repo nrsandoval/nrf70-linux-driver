@@ -471,14 +471,16 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	vif_ctx_lnx->rpu_ctx = rpu_ctx_lnx;
 	vif_ctx_lnx->netdev = netdev;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
+	pr_info("%s: Initial type=%d", __func__, netdev->type);
 
 	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
-		netdev->netdev_ops = &nrf_wifi_monitor_netdev_ops;
+		// netdev->netdev_ops = &nrf_wifi_monitor_netdev_ops;
 		// netdev->type = ARPHRD_IEEE80211_RADIOTAP;
 		netdev->type = ARPHRD_IEEE80211;
-	} else {
-		netdev->netdev_ops = &nrf_wifi_netdev_ops;
 	}
+	// } else {
+		netdev->netdev_ops = &nrf_wifi_netdev_ops;
+	// }
 
 	strncpy(netdev->name, if_name, sizeof(netdev->name) - 1);
 
@@ -537,6 +539,7 @@ void nrf_wifi_netdev_del_vif(struct net_device *netdev)
 inline void nrf_wifi_netdev_chg_vif(struct net_device *netdev)
 {
 	struct wireless_dev* wdev;
+	pr_info("%s: changing??\n", __func__);
 
 	wdev = netdev->ieee80211_ptr;
 
@@ -545,7 +548,7 @@ inline void nrf_wifi_netdev_chg_vif(struct net_device *netdev)
 		netdev->type = ARPHRD_IEEE80211;
 	} else {
 		netdev->netdev_ops = &nrf_wifi_netdev_ops;
-		netdev->type = 0;
+		netdev->type = 1;
 	}
 }
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
