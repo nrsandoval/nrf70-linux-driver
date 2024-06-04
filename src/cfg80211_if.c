@@ -29,18 +29,11 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	unsigned char mac_addr[ETH_ALEN];
 
 	rpu_ctx_lnx = wiphy_priv(wiphy);
-	pr_info("%s: add vif\n", __func__);
 
 	if (mac_addr == NULL) {
 		pr_err("%s: Mac address is null\n", __func__);
 		goto err;
 	}
-
-	// if (nrf_wifi_fmac_mac_addr(rpu_ctx_lnx->rpu_ctx, mac_addr) !=
-	//     NRF_WIFI_STATUS_SUCCESS) {
-	// 	pr_err("%s: Unable to get mac address for VIF\n", __func__);
-	// 	goto err;
-	// }
 
 	vif_ctx_lnx =
 		nrf_wifi_wlan_fmac_add_vif(rpu_ctx_lnx, name, mac_addr, type);
@@ -50,7 +43,6 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 		goto err;
 	}
 
-	pr_info("%s: alloc", __func__);
 	add_vif_info = kzalloc(sizeof(*add_vif_info), GFP_KERNEL);
 
 	if (!add_vif_info) {
@@ -63,7 +55,6 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	memcpy(add_vif_info->ifacename, name, strlen(name));
 
 	ether_addr_copy(add_vif_info->mac_addr, mac_addr);
-	pr_info("%s: fmac_add_vif\n", __func__);
 	vif_ctx_lnx->if_idx = nrf_wifi_fmac_add_vif(rpu_ctx_lnx->rpu_ctx,
 						    vif_ctx_lnx, add_vif_info);
 
@@ -80,7 +71,6 @@ err:
 		vif_ctx_lnx = NULL;
 	}
 out:
-	pr_info("%s: leaving\n", __func__);
 	if (add_vif_info)
 		kfree(add_vif_info);
 
@@ -140,8 +130,6 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
 	int status = -1;
 	unsigned int count = 50;
-
-	pr_info("%s: Start\n", __func__);
 
 	wdev = netdev->ieee80211_ptr;
 
@@ -225,7 +213,6 @@ out:
 	if (vif_info)
 		kfree(vif_info);
 
-	pr_info("%s: Finished\n", __func__);
 	return status;
 }
 
@@ -1872,8 +1859,6 @@ int nrf_wifi_cfg80211_set_qos_map(struct wiphy *wiphy,
 		pr_err("%s: Unable to allocate memory\n", __func__);
 		goto out;
 	}
-
-	pr_info("%s: Why???", __func__);
 
 	rpu_ctx_lnx = wiphy_priv(wiphy);
 	vif_ctx_lnx = netdev_priv(netdev);

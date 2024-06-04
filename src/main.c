@@ -735,10 +735,6 @@ void nrf_wifi_event_get_reg_callbk_fn(void *vif_ctx,
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
 
-	pr_info("%s: alpha2 = %c%c", __func__,
-			get_reg_event->nrf_wifi_alpha2[0],
-			get_reg_event->nrf_wifi_alpha2[1]);
-	
 	vif_ctx_lnx = vif_ctx;
 	if (!vif_ctx_lnx) {
 		pr_err("%s: vif_ctx_lnx is NULL\n", __func__);
@@ -782,7 +778,6 @@ void nrf_wifi_set_if_callbk_fn(
 	pr_info("%s: Received %d status\n", __func__, set_if_event->return_value);
 
 	vif_ctx_lnx->event_set_if = 1;
-	// TODO This might not be correct, as sometimes we are getting -95, ENOTSUPP from return_value
 	vif_ctx_lnx->status_set_if = set_if_event->return_value;
 }
 

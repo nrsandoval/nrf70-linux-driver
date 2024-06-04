@@ -197,21 +197,19 @@ int rpu_enable(void *dev)
 
 int rpu_disable(void *dev)
 {
-	int err = -1;
-	pr_info("rpu disabled\n");
 
 	if (bucken) {
 		gpiod_set_value(bucken, 0);
 	} else {
 		pr_err("BUCKEN GPIO set failed...\n");
-		return err;
+		return -1;
 	}
 
 	if (iovdd) {
 		gpiod_set_value(iovdd, 0);
 	} else {
 		pr_err("IOVDD GPIO set failed...\n");
-		return err;
+		return -1;
 	}
 
 	return 0;
