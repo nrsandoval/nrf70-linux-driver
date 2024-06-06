@@ -859,6 +859,7 @@ static int shim_bus_spi_probe(struct spi_device *spi_dev)
 	const struct spi_device_id *id = spi_get_device_id(spi_dev);
 
 	lnx_spi_priv = (struct shim_bus_spi_priv *)id->driver_data;
+	pr_info("%s: Probing\n", __func__);
 
 	if (lnx_spi_priv->spi_dev) {
 		pr_err("%s: Previous detected device still not added\n",
@@ -897,6 +898,8 @@ static int shim_bus_spi_remove(struct spi_device *spi_dev)
 {
 	struct shim_bus_spi_dev_ctx *lnx_spi_dev_ctx = NULL;
 	struct shim_bus_spi_priv *lnx_spi_priv = NULL;
+
+	pr_info("%s: removing\n", __func__);
 
 	lnx_spi_dev_ctx = spi_get_drvdata(spi_dev);
 	lnx_spi_priv = lnx_spi_dev_ctx->lnx_spi_priv;

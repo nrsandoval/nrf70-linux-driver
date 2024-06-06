@@ -374,7 +374,7 @@ const struct net_device_ops nrf_wifi_netdev_ops = {
 struct nrf_wifi_fmac_vif_ctx_lnx *
 nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 			const char *if_name, struct wireless_dev *wdev,
-			char *mac_addr)
+			char *mac_addr, bool hasLock)
 {
 	struct net_device *netdev = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
@@ -382,6 +382,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	int ret = 0;
 
 	ASSERT_RTNL();
+	pr_info("%s: Adding VIF\n", __func__);
 
 	netdev = alloc_etherdev(sizeof(struct nrf_wifi_fmac_vif_ctx_lnx));
 
@@ -420,7 +421,14 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	INIT_WORK(&vif_ctx_lnx->ws_queue_monitor,
 		  nrf_cfg80211_queue_monitor_routine);
 #endif
-	ret = register_netdevice(netdev);
+	pr_info("%s: Registering lock=%d\n", __func__, hasLock);
+	
+	// if (hasLock) {
+		ret = register_netdevice(netdev);
+	// } else {
+		// ret = register_netdev(netdev);
+	// }
+	pr_info("%s: Registered\n", __func__);
 
 	if (ret) {
 		pr_err("%s: Unable to register netdev, ret=%d\n", __func__,

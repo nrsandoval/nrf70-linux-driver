@@ -47,6 +47,6 @@ struct nrf_wifi_fmac_vif_ctx_lnx {
 struct nrf_wifi_fmac_vif_ctx_lnx *
 nrf_wifi_wlan_fmac_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 			   const char *name, char *mac_addr,
-			   enum nl80211_iftype if_type);
+			   enum nl80211_iftype if_type, bool hasLock);
 void nrf_wifi_wlan_fmac_del_vif(struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx);
 #endif /* __FMAC_MAIN_H__ */

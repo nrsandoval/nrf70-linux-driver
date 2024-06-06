@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: GPL-2.0
  */
 
+
+#include <linux/rtnetlink.h>
+
 #include "host_rpu_umac_if.h"
 #include "main.h"
 #include "fmac_main.h"
@@ -28,15 +31,31 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	struct nrf_wifi_umac_add_vif_info *add_vif_info = NULL;
 	unsigned char mac_addr[ETH_ALEN];
 
+	pr_info("%s: Adding %s\n", __func__, name);
+	
+	ASSERT_RTNL();
+
+	// if (rtnl_is_locked()) {
+	// 	pr_info("%s: rtnl is locked, unlocking\n", __func__);
+	// 	rtnl_unlock();
+	// } else {
+	// 	pr_info("%s: rtnl is unlocked\n", __func__);
+	// }
+
 	rpu_ctx_lnx = wiphy_priv(wiphy);
 
 	if (mac_addr == NULL) {
 		pr_err("%s: Mac address is null\n", __func__);
 		goto err;
 	}
-
+	pr_info("%s: Locking??\n", __func__);
+	
+	// rtnl_lock();
 	vif_ctx_lnx =
-		nrf_wifi_wlan_fmac_add_vif(rpu_ctx_lnx, name, mac_addr, type);
+		nrf_wifi_wlan_fmac_add_vif(rpu_ctx_lnx, name, mac_addr, type, true);
+
+	// rtnl_unlock();
+	// pr_info("%s: Unlocking\n", __func__);
 
 	if (!vif_ctx_lnx) {
 		pr_err("%s: Unable to add interface to the stack\n", __func__);

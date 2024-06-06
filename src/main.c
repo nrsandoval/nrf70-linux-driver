@@ -110,10 +110,12 @@ struct nrf_wifi_drv_priv_lnx rpu_drv_priv;
 struct nrf_wifi_fmac_vif_ctx_lnx *
 nrf_wifi_wlan_fmac_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 			   const char *name, char *mac_addr,
-			   enum nl80211_iftype if_type)
+			   enum nl80211_iftype if_type, bool hasLock)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct wireless_dev *wdev = NULL;
+
+	pr_info("%s: wlan add vif\n", __func__);
 
 	/* Create a cfg80211 VIF */
 	wdev = kzalloc(sizeof(struct wireless_dev), GFP_KERNEL);
@@ -128,7 +130,7 @@ nrf_wifi_wlan_fmac_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 
 	/* Create the interface and register it to the netdev stack */
 	vif_ctx_lnx =
-		nrf_wifi_netdev_add_vif(rpu_ctx_lnx, name, wdev, mac_addr);
+		nrf_wifi_netdev_add_vif(rpu_ctx_lnx, name, wdev, mac_addr, hasLock);
 
 	if (!vif_ctx_lnx) {
 		pr_err("%s: Failed to add interface to netdev stack\n",
@@ -452,7 +454,7 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	rtnl_lock();
 
 	vif_ctx_lnx = nrf_wifi_wlan_fmac_add_vif(
-		rpu_ctx_lnx, "nrf_wifi", base_mac_addr, NL80211_IFTYPE_STATION);
+		rpu_ctx_lnx, "nrf_wifi", base_mac_addr, NL80211_IFTYPE_STATION, true);
 
 	rtnl_unlock();
 
@@ -979,9 +981,7 @@ int __init nrf_wifi_init_lnx(void)
 
 #ifndef CONFIG_NRF700X_RADIO_TEST
 	rpu_drv_priv.fmac_priv = nrf_wifi_fmac_init(
-#ifndef CONFIG_NRF700X_RADIO_TEST
 		&data_config, rx_buf_pools, &callbk_fns
-#endif /* !CONFIG_NRF700X_RADIO_TEST */
 	);
 #else
 	rpu_drv_priv.fmac_priv = nrf_wifi_fmac_init_rt();
