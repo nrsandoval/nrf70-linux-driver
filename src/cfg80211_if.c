@@ -6,6 +6,7 @@
 
 
 #include <linux/rtnetlink.h>
+#include <net/cfg80211.h>
 
 #include "host_rpu_umac_if.h"
 #include "main.h"
@@ -16,6 +17,7 @@
 extern const struct ieee80211_txrx_stypes ieee80211_default_mgmt_stypes[];
 extern struct ieee80211_supported_band band_2ghz;
 extern struct ieee80211_supported_band band_5ghz;
+extern const struct ieee80211_iface_combination iface_combinations[];
 int get_scan_results;
 unsigned long long cmd_frame_cookie_g;
 
@@ -2507,6 +2509,9 @@ void wiphy_init(struct wiphy *wiphy)
 		BIT(NL80211_IFTYPE_MONITOR);
 
 	wiphy->software_iftypes |= BIT(NL80211_IFTYPE_MONITOR);
+
+	wiphy->iface_combinations = iface_combinations;
+	wiphy->n_iface_combinations = 1;
 
 	wiphy->max_scan_ssids = 4;
 	wiphy->max_scan_ie_len = IEEE80211_MAX_DATA_LEN;

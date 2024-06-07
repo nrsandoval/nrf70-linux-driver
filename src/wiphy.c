@@ -172,3 +172,23 @@ struct ieee80211_supported_band band_2ghz = {
 	.ht_cap.ht_supported = 1,
 	/*.vht_cap.vht_supported = 1,*/
 };
+
+struct ieee80211_iface_limit iface_limits[] = {
+	{
+		.max = 1,
+		.types = BIT(NL80211_IFTYPE_STATION)
+	},
+	{
+		.max = 1,
+		.types = BIT(NL80211_IFTYPE_AP)
+	}
+};
+
+const struct ieee80211_iface_combination iface_combinations[] = {
+	{
+		.limits = iface_limits,
+		.n_limits = 2,
+		.max_interfaces = 2,
+		.num_different_channels = 1
+	}
+};
