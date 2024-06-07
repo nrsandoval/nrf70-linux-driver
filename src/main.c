@@ -145,7 +145,8 @@ out:
 	return vif_ctx_lnx;
 }
 
-void nrf_wifi_wlan_fmac_del_vif(struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx)
+void nrf_wifi_wlan_fmac_del_vif(struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx,
+								bool hasLock)
 {
 	struct net_device *netdev = NULL;
 	struct wireless_dev *wdev = NULL;
@@ -154,7 +155,7 @@ void nrf_wifi_wlan_fmac_del_vif(struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx)
 	netdev = vif_ctx_lnx->netdev;
 
 	/* Unregister the default interface from the netdev stack */
-	nrf_wifi_netdev_del_vif(netdev);
+	nrf_wifi_netdev_del_vif(netdev, hasLock);
 
 	wdev = vif_ctx_lnx->wdev;
 	kfree(wdev);
@@ -551,7 +552,7 @@ out:
 			 * deletion of the interface */
 			rtnl_lock();
 
-			nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx);
+			nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx, true);
 
 			rtnl_unlock();
 		}
@@ -581,7 +582,7 @@ void nrf_wifi_fmac_dev_deinit_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 					 *)(def_dev_ctx->vif_ctx[i]->os_vif_ctx);
 			if_idx = vif_ctx_lnx->if_idx;
 			rtnl_lock();
-			nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx);
+			nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx, true);
 			rtnl_unlock();
 			nrf_wifi_fmac_del_vif(fmac_dev_ctx, if_idx);
 			def_dev_ctx->vif_ctx[i] = NULL;
@@ -610,7 +611,7 @@ void nrf_wifi_fmac_dev_deinit_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	 * deletion of the interface */
 	rtnl_lock();
 
-	nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx);
+	nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx, true);
 
 	rtnl_unlock();
 

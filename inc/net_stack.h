@@ -17,7 +17,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 			const char *if_name, struct wireless_dev *wdev,
 			char *mac_addr, bool hasLock);
 
-void nrf_wifi_netdev_del_vif(struct net_device *netdev);
+void nrf_wifi_netdev_del_vif(struct net_device *netdev, bool hasLock);
 
 void nrf_wifi_netdev_chg_vif(struct net_device *netdev);
 

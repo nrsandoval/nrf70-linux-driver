@@ -52,7 +52,7 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	
 	// rtnl_lock();
 	vif_ctx_lnx =
-		nrf_wifi_wlan_fmac_add_vif(rpu_ctx_lnx, name, mac_addr, type, true);
+		nrf_wifi_wlan_fmac_add_vif(rpu_ctx_lnx, name, mac_addr, type, false);
 
 	// rtnl_unlock();
 	// pr_info("%s: Unlocking\n", __func__);
@@ -86,7 +86,7 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 
 err:
 	if (vif_ctx_lnx) {
-		nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx);
+		nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx, false);
 		vif_ctx_lnx = NULL;
 	}
 out:
@@ -105,6 +105,7 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct net_device *netdev = NULL;
 	int status = -1;
+	pr_info("%s: deleting\n", __func__);
 
 	netdev = wdev->netdev;
 
@@ -125,7 +126,7 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 		goto out;
 	}
 
-	nrf_wifi_netdev_del_vif(netdev);
+	nrf_wifi_netdev_del_vif(netdev, false);
 
 	nrf_wifi_fmac_vif_clear_ctx(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx);
 	netdev = NULL;

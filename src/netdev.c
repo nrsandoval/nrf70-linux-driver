@@ -423,11 +423,11 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 #endif
 	pr_info("%s: Registering lock=%d\n", __func__, hasLock);
 	
-	// if (hasLock) {
+	if (hasLock) {
 		ret = register_netdevice(netdev);
-	// } else {
-		// ret = register_netdev(netdev);
-	// }
+	} else {
+		ret = cfg80211_register_netdevice(netdev);
+	}
 	pr_info("%s: Registered\n", __func__);
 
 	if (ret) {
@@ -446,7 +446,7 @@ out:
 	return vif_ctx_lnx;
 }
 
-void nrf_wifi_netdev_del_vif(struct net_device *netdev)
+void nrf_wifi_netdev_del_vif(struct net_device *netdev, bool hasLock)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
@@ -459,7 +459,11 @@ void nrf_wifi_netdev_del_vif(struct net_device *netdev)
 	nrf_wifi_utils_q_free(fmac_dev_ctx->fpriv->opriv,
 			      vif_ctx_lnx->data_txq);
 
-	unregister_netdevice(netdev);
+	if (hasLock) {
+		unregister_netdevice(netdev);
+	} else {
+		cfg80211_unregister_netdevice(netdev);
+	}
 	netdev->ieee80211_ptr = NULL;
 }
 
