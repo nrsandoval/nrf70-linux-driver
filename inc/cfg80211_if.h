@@ -11,7 +11,7 @@
 #include "main.h"
 #include "fmac_main.h"
 
-struct wiphy *cfg80211_if_init(void);
+struct wiphy *cfg80211_if_init(struct device* dev);
 void cfg80211_if_deinit(struct wiphy *wiphy);
 
 void nrf_wifi_cfg80211_scan_start_callbk_fn(

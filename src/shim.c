@@ -869,7 +869,7 @@ static int shim_bus_spi_probe(struct spi_device *spi_dev)
 
 	lnx_spi_priv->spi_dev = spi_dev;
 
-	lnx_rpu_ctx = nrf_wifi_fmac_dev_add_lnx();
+	lnx_rpu_ctx = nrf_wifi_fmac_dev_add_lnx(&spi_dev->dev);
 
 	if (!lnx_rpu_ctx) {
 		pr_err("%s: nrf_wifi_fmac_dev_add_lnx failed\n", __func__);

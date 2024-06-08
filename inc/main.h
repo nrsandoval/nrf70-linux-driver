@@ -78,7 +78,7 @@ struct nrf_wifi_drv_priv_lnx {
 	bool drv_init;
 };
 
-struct nrf_wifi_ctx_lnx *nrf_wifi_fmac_dev_add_lnx(void);
+struct nrf_wifi_ctx_lnx *nrf_wifi_fmac_dev_add_lnx(struct device* dev);
 void nrf_wifi_fmac_dev_rem_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx);
 enum nrf_wifi_status
 nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx);

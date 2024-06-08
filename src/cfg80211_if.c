@@ -2520,7 +2520,7 @@ void wiphy_init(struct wiphy *wiphy)
 	wiphy->n_cipher_suites = ARRAY_SIZE(cipher_suites);
 }
 
-struct wiphy *cfg80211_if_init(void)
+struct wiphy *cfg80211_if_init(struct device* dev)
 {
 	struct wiphy *wiphy = NULL;
 
@@ -2545,6 +2545,8 @@ struct wiphy *cfg80211_if_init(void)
 
 	/* Below flag is required for passing duration by iw utilities */
 	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_SET_SCAN_DWELL);
+	
+	set_wiphy_dev(wiphy, dev);
 
 	wiphy_init(wiphy);
 

@@ -193,12 +193,11 @@ out:
 	return status;
 }
 
-struct nrf_wifi_ctx_lnx *nrf_wifi_fmac_dev_add_lnx(void)
+struct nrf_wifi_ctx_lnx *nrf_wifi_fmac_dev_add_lnx(struct device* dev)
 {
 	enum nrf_wifi_status status = NRF_WIFI_STATUS_FAIL;
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	void *rpu_ctx = NULL;
-	struct device *dev = NULL;
 	struct wiphy *wiphy = NULL;
 	unsigned char i = 0;
 
@@ -215,7 +214,7 @@ struct nrf_wifi_ctx_lnx *nrf_wifi_fmac_dev_add_lnx(void)
 	}
 
 	/* Register the RPU to the cfg80211 stack */
-	wiphy = cfg80211_if_init();
+	wiphy = cfg80211_if_init(dev);
 
 	if (!wiphy) {
 		pr_err("%s: cfg80211_if_init failed\n", __func__);
@@ -225,7 +224,6 @@ struct nrf_wifi_ctx_lnx *nrf_wifi_fmac_dev_add_lnx(void)
 	rpu_ctx_lnx = wiphy_priv(wiphy);
 
 	rpu_ctx_lnx->wiphy = wiphy;
-	dev = &wiphy->dev;
 
 	INIT_LIST_HEAD(&rpu_ctx_lnx->cookie_list);
 
