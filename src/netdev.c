@@ -398,7 +398,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
 
 	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
-		netdev->type = ARPHRD_IEEE80211;
+		netdev->type = ARPHRD_IEEE80211_RADIOTAP; //ARPHRD_IEEE80211;
 	}
 	netdev->netdev_ops = &nrf_wifi_netdev_ops;
 
@@ -476,7 +476,7 @@ inline void nrf_wifi_netdev_chg_vif(struct net_device *netdev)
 	wdev = netdev->ieee80211_ptr;
 
 	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
-		netdev->type = ARPHRD_IEEE80211;
+		netdev->type = ARPHRD_IEEE80211_RADIOTAP; //ARPHRD_IEEE80211;
 	} else {
 		netdev->type = ARPHRD_ETHER;
 	}
