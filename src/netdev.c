@@ -421,6 +421,8 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	INIT_WORK(&vif_ctx_lnx->ws_queue_monitor,
 		  nrf_cfg80211_queue_monitor_routine);
 #endif
+
+	SET_NETDEV_DEV(netdev, wiphy_dev(wdev->wiphy));
 	pr_info("%s: Registering lock=%d\n", __func__, hasLock);
 	
 	if (hasLock) {
