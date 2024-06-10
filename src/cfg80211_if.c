@@ -37,27 +37,15 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	
 	ASSERT_RTNL();
 
-	// if (rtnl_is_locked()) {
-	// 	pr_info("%s: rtnl is locked, unlocking\n", __func__);
-	// 	rtnl_unlock();
-	// } else {
-	// 	pr_info("%s: rtnl is unlocked\n", __func__);
-	// }
-
 	rpu_ctx_lnx = wiphy_priv(wiphy);
 
 	if (mac_addr == NULL) {
 		pr_err("%s: Mac address is null\n", __func__);
 		goto err;
 	}
-	pr_info("%s: Locking??\n", __func__);
 	
-	// rtnl_lock();
 	vif_ctx_lnx =
 		nrf_wifi_wlan_fmac_add_vif(rpu_ctx_lnx, name, mac_addr, type, false);
-
-	// rtnl_unlock();
-	// pr_info("%s: Unlocking\n", __func__);
 
 	if (!vif_ctx_lnx) {
 		pr_err("%s: Unable to add interface to the stack\n", __func__);
@@ -71,7 +59,11 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 		goto err;
 	}
 
-	add_vif_info->iftype = type;
+	if (type == NL80211_IFTYPE_MONITOR) {
+		add_vif_info->iftype = NL80211_IFTYPE_STATION;
+	} else {
+		add_vif_info->iftype = type;
+	}
 
 	memcpy(add_vif_info->ifacename, name, strlen(name));
 
@@ -120,6 +112,10 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 		goto out;
 	}
 
+	pr_info("%s: Deleting wlan vif\n", __func__);
+	nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx, false);
+
+	pr_info("%s: Deleting fmac vif\n", __func__);
 	status = nrf_wifi_fmac_del_vif(rpu_ctx_lnx->rpu_ctx,
 				       vif_ctx_lnx->if_idx);
 
@@ -128,15 +124,16 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 		goto out;
 	}
 
-	nrf_wifi_netdev_del_vif(netdev, false);
+	// nrf_wifi_netdev_del_vif(netdev, false);
 
+	pr_info("%s: Clearing context\n", __func__);
 	nrf_wifi_fmac_vif_clear_ctx(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx);
 	netdev = NULL;
 
-	kfree(wdev);
-	wdev = NULL;
+	// kfree(wdev);
+	// wdev = NULL;
 out:
-
+	pr_info("%s: Delete finished\n", __func__);
 	return status;
 }
 
@@ -149,7 +146,9 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_attr_info *vif_info = NULL;
+#if 0
 	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
+#endif
 	int status = -1;
 	unsigned int count = 50;
 
@@ -168,6 +167,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	vif_info->iftype = iftype;
 	vif_info->nrf_wifi_use_4addr = params->use_4addr;
 
+#if 0
 	reg_domain_info.alpha2[0] = '0';
 	reg_domain_info.alpha2[1] = '0';
 	reg_domain_info.force = false;
@@ -191,6 +191,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_set_packet_filter failed\n", __func__);
 	}
+#endif
 
 	if (iftype == NL80211_IFTYPE_MONITOR || 
 		(wdev->iftype == NL80211_IFTYPE_MONITOR)) {

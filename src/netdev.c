@@ -154,6 +154,8 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
+	struct wireless_dev *wdev = NULL;
+	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
 	int status = -1;
 	pr_info("%s: opening\n", __func__);
 
@@ -161,6 +163,7 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 
 	netdev->ethtool_ops = &nrf_wifi_ethtool_ops;
+	wdev = netdev->ieee80211_ptr;
 
 	vif_info = kzalloc(sizeof(*vif_info), GFP_KERNEL);
 
@@ -179,6 +182,38 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
 		goto out;
+	} else {
+		pr_info("%s: Changed vif state\n", __func__);
+	}
+
+	reg_domain_info.alpha2[0] = '0';
+	reg_domain_info.alpha2[1] = '0';
+	reg_domain_info.force = false;
+
+	status = nrf_wifi_fmac_set_reg(rpu_ctx_lnx->rpu_ctx, &reg_domain_info);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_reg failed\n", __func__);
+		goto out;
+	} else {
+		pr_info("%s: Set reg\n", __func__);
+	}
+
+	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
+								vif_ctx_lnx->if_idx,
+								wdev->iftype == NL80211_IFTYPE_MONITOR ? NRF_WIFI_MONITOR_MODE : NRF_WIFI_STA_MODE);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_fmac_set_mode failed\n", __func__);
+		goto out;
+	} else {
+		pr_info("%s: set mode=%d\n", __func__, wdev->iftype);
+	}
+
+	status = nrf_wifi_fmac_set_packet_filter(rpu_ctx_lnx->rpu_ctx, NRF_WIFI_PACKET_FILTER_ALL,
+										vif_ctx_lnx->if_idx, 255);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_packet_filter failed\n", __func__);
+	} else {
+		pr_info("%s: packet filter\n", __func__);
 	}
 	
 out:
