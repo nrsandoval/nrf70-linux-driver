@@ -183,7 +183,7 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
 		goto out;
 	} else {
-		pr_info("%s: Changed vif state\n", __func__);
+		pr_info("%s: Changed vif state idx=%d\n", __func__, vif_info->if_index);
 	}
 
 	reg_domain_info.alpha2[0] = '0';
@@ -328,16 +328,43 @@ void nrf_wifi_netdev_rx_sniffer_frm(void *os_vif_ctx, void *frm,
 				bool pkt_free)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
+	struct wireless_dev *wdev = NULL;
 	struct sk_buff *skb = frm;
 	struct net_device *netdev = NULL;
+	unsigned char i = 0;
 
 	if (skb == NULL) {
 		pr_info("%s: skb==NULL something wrong\n", __func__);
 		return;
 	}
 
+	// Find correct monitor channel
+	// TODO see if this can be fixed in the library or if this is a firmware issue
 	vif_ctx_lnx = os_vif_ctx;
-	netdev = vif_ctx_lnx->netdev;
+	wdev = vif_ctx_lnx->wdev;
+	if (wdev && wdev->iftype == NL80211_IFTYPE_MONITOR) {
+		netdev = vif_ctx_lnx->netdev;
+	} else {
+		def_dev_ctx = wifi_dev_priv(vif_ctx_lnx->rpu_ctx->rpu_ctx);
+		for (i = 0; i < MAX_NUM_VIFS; i++) {
+			vif_ctx_lnx = 
+				(struct nrf_wifi_fmac_vif_ctx_lnx
+					 *)(def_dev_ctx->vif_ctx[i]->os_vif_ctx);
+			wdev = vif_ctx_lnx->wdev;
+			if (wdev && wdev->iftype == NL80211_IFTYPE_MONITOR) {
+				netdev = vif_ctx_lnx->netdev;
+				break;
+			} else {
+				vif_ctx_lnx = NULL;
+			}
+		}
+	}
+
+	if (netdev == NULL) {
+		pr_err("%s: No monitor channel found\n", __func__);
+		return;
+	}
 
 	skb = (struct sk_buff *)skb_raw_pkt_from_nbuf(netdev, skb, sizeof(struct raw_rx_pkt_header),
 								raw_rx_hdr, pkt_free);
@@ -434,6 +461,8 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 
 	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
 		netdev->type = ARPHRD_IEEE80211_RADIOTAP; //ARPHRD_IEEE80211;
+	} else {
+		netdev->type = ARPHRD_ETHER;
 	}
 	netdev->netdev_ops = &nrf_wifi_netdev_ops;
 
