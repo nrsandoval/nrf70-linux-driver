@@ -13,6 +13,7 @@
 #include "fmac_main.h"
 #include "net_stack.h"
 #include "fmac_api.h"
+#include "fmac_util.h"
 
 extern const struct ieee80211_txrx_stypes ieee80211_default_mgmt_stypes[];
 extern struct ieee80211_supported_band band_2ghz;
@@ -64,6 +65,7 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	} else {
 		add_vif_info->iftype = type;
 	}
+	pr_info("%s: type sent=%d type used=%d", __func__, type, add_vif_info->iftype);
 
 	memcpy(add_vif_info->ifacename, name, strlen(name));
 
@@ -146,11 +148,10 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_attr_info *vif_info = NULL;
-#if 0
-	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
-#endif
 	int status = -1;
 	unsigned int count = 50;
+
+	pr_info("%s: Changing to %d\n", __func__, iftype);
 
 	wdev = netdev->ieee80211_ptr;
 
@@ -167,34 +168,10 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	vif_info->iftype = iftype;
 	vif_info->nrf_wifi_use_4addr = params->use_4addr;
 
-#if 0
-	reg_domain_info.alpha2[0] = '0';
-	reg_domain_info.alpha2[1] = '0';
-	reg_domain_info.force = false;
-
-	status = nrf_wifi_fmac_set_reg(rpu_ctx_lnx->rpu_ctx, &reg_domain_info);
-	if (status == NRF_WIFI_STATUS_FAIL) {
-		pr_err("%s: nrf_wifi_fmac_set_reg failed\n", __func__);
-		goto out;
-	}
-
-	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
-								vif_ctx_lnx->if_idx,
-								iftype == NL80211_IFTYPE_MONITOR ? NRF_WIFI_MONITOR_MODE : NRF_WIFI_STA_MODE);
-	if (status == NRF_WIFI_STATUS_FAIL) {
-		pr_err("%s: nrf_fmac_set_mode failed\n", __func__);
-		goto out;
-	}
-
-	status = nrf_wifi_fmac_set_packet_filter(rpu_ctx_lnx->rpu_ctx, NRF_WIFI_PACKET_FILTER_ALL,
-										vif_ctx_lnx->if_idx, 255);
-	if (status == NRF_WIFI_STATUS_FAIL) {
-		pr_err("%s: nrf_wifi_fmac_set_packet_filter failed\n", __func__);
-	}
-#endif
-
 	if (iftype == NL80211_IFTYPE_MONITOR || 
 		(wdev->iftype == NL80211_IFTYPE_MONITOR)) {
+		pr_info("%s: Skipping\n", __func__);
+		status = 0;
 		// If we are switching from or to monitor mode, then we don't need to change virtual interface
 		goto update_if;
 	}
@@ -884,11 +861,38 @@ int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
 				       struct cfg80211_chan_def *chandef)
 {
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct wireless_dev *wdev = NULL;
+	unsigned char i = 0;
 
 	rpu_ctx_lnx = wiphy_priv(wiphy);
+	def_dev_ctx = wifi_dev_priv(rpu_ctx_lnx->rpu_ctx);
+
+	// Find virtual interface in monitor mode
+	for (i = 0; i < MAX_NUM_VIFS; i++) {
+		if (def_dev_ctx->vif_ctx[i]) {
+			vif_ctx_lnx = 
+				(struct nrf_wifi_fmac_vif_ctx_lnx
+					 *)(def_dev_ctx->vif_ctx[i]->os_vif_ctx);
+			wdev = vif_ctx_lnx->wdev;
+			if (wdev && wdev->iftype == NL80211_IFTYPE_MONITOR) {
+				pr_info("%s: Using intf=%d\n", __func__, vif_ctx_lnx->if_idx);
+				break;
+			} else {
+				vif_ctx_lnx = NULL;
+			}
+		}
+	}
+
+	if (vif_ctx_lnx == NULL) {
+		pr_err("%s: No monitor channel found\n", __func__);
+		return 1;
+	}
 
 	// TODO for now only use channel 1
-	if (nrf_wifi_fmac_set_channel(rpu_ctx_lnx->rpu_ctx, 0, 1) != NRF_WIFI_STATUS_SUCCESS) {
+	pr_info("%s: Set channel=1\n", __func__);
+	if (nrf_wifi_fmac_set_channel(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, 1) != NRF_WIFI_STATUS_SUCCESS) {
 		pr_err("%s: Not able to set channel 1", __func__);
 		return -EINVAL;
 	}
