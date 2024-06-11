@@ -23,6 +23,7 @@
 #include <linux/bug.h>
 #include <linux/irq.h>
 #include <net/cfg80211.h>
+#include <net/ieee80211_radiotap.h>
 #include <linux/math64.h>
 #include <linux/mutex.h>
 
@@ -376,10 +377,15 @@ void *skb_raw_pkt_from_nbuf(void *iface, void *frm,
 			void* raw_rx_hdr,
 			bool pkt_free)
 {
-	// unsigned char *skb_data;
-	// unsigned char *data = NULL;
-	// unsigned int skb_len;
-	// unsigned int total_len;
+	struct nrf_wifi_rtap {
+		struct ieee80211_radiotap_header rthdr;
+		// The order is extremely important
+		__le16 chnl_freq __aligned(2);
+		__le16 chnl_flags;
+	} __packed;
+	int rtap_len = sizeof(struct nrf_wifi_rtap);
+	struct nrf_wifi_rtap *rtap;
+	struct raw_rx_pkt_header *nrf_rx_hdr = raw_rx_hdr;
 	struct net_device *netdev = iface;
 	struct sk_buff *skb = frm;
 
@@ -388,32 +394,28 @@ void *skb_raw_pkt_from_nbuf(void *iface, void *frm,
 		return NULL;
 	}
 
-	// skb_len = shim_nbuf_data_size(skb);
-	// skb_data = shim_nbuf_data_get(skb);
-	// total_len = raw_hdr_len + skb_len;
+	if (skb_headroom(skb) < rtap_len &&
+		pskb_expand_head(skb, rtap_len, 0, GFP_ATOMIC)) {
+			pr_err("%s: Unable to expand headroom to %d\n", __func__, rtap_len);
+			return NULL;
+	}
 
-	// data = (unsigned char *)kmalloc(total_len, GFP_KERNEL);
-	// if (!data) {
-	// 	pr_err("%s: Unable to allocate memory for sniffer data packet", __func__);
-	// 	skb = NULL;
-	// 	goto out;
-	// }
+	rtap = skb_push(skb, rtap_len);
+	memset(rtap, 0, rtap_len);
 
-	// memcpy(data, raw_rx_hdr, raw_hdr_len);
-	// memcpy((data+raw_hdr_len), skb_data, skb_len);
+	rtap->rthdr.it_version = PKTHDR_RADIOTAP_VERSION;
+	rtap->rthdr.it_len = cpu_to_le16(rtap_len);
+	rtap->rthdr.it_present = cpu_to_le32((1 << IEEE80211_RADIOTAP_CHANNEL));
 
-	// memcpy(skb_data, data, total_len);
+	rtap->chnl_freq = cpu_to_le16(nrf_rx_hdr->frequency);
+	rtap->chnl_flags = cpu_to_le16(0);
+
 	skb_set_tail_pointer(skb, shim_nbuf_data_size(skb));
-	// skb->len = total_len;
 
 	skb->dev = netdev;
 	skb->ip_summed = CHECKSUM_NONE;
 	skb->pkt_type = PACKET_OTHERHOST;
 	skb->protocol = eth_type_trans(skb, skb->dev);
-// out:
-	// if (data != NULL) {
-	// 	kfree(data);
-	// }
 
 	return skb;
 }
