@@ -864,6 +864,7 @@ int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
 	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct wireless_dev *wdev = NULL;
+	unsigned int channel = 0;
 	unsigned char i = 0;
 
 	rpu_ctx_lnx = wiphy_priv(wiphy);
@@ -877,7 +878,6 @@ int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
 					 *)(def_dev_ctx->vif_ctx[i]->os_vif_ctx);
 			wdev = vif_ctx_lnx->wdev;
 			if (wdev && wdev->iftype == NL80211_IFTYPE_MONITOR) {
-				pr_info("%s: Using intf=%d\n", __func__, vif_ctx_lnx->if_idx);
 				break;
 			} else {
 				vif_ctx_lnx = NULL;
@@ -890,10 +890,9 @@ int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
 		return 1;
 	}
 
-	// TODO for now only use channel 1
-	pr_info("%s: Set channel=1\n", __func__);
-	if (nrf_wifi_fmac_set_channel(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, 1) != NRF_WIFI_STATUS_SUCCESS) {
-		pr_err("%s: Not able to set channel 1", __func__);
+	channel = chandef->chan->hw_value;
+	if (nrf_wifi_fmac_set_channel(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, channel) != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: Not able to set channel %d", __func__, channel);
 		return -EINVAL;
 	}
 
@@ -2245,7 +2244,10 @@ int nrf_wifi_cfg80211_get_channel(struct wiphy *wiphy,
 {
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
+	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
 	unsigned int count = 50;
+	unsigned int channel = 0;
 	int status = 0;
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
@@ -2254,6 +2256,26 @@ int nrf_wifi_cfg80211_get_channel(struct wiphy *wiphy,
 	if (!(wdev->netdev->flags & IFF_UP)) {
 		pr_debug("%s: Interface is not UP\n", __func__);
 		return -ENETDOWN;
+	}
+	
+	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
+		fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
+		def_dev_ctx = wifi_dev_priv(fmac_dev_ctx);
+
+		channel = def_dev_ctx->vif_ctx[vif_ctx_lnx->if_idx]->channel;
+		if (channel > 13) {
+			chandef->chan = ieee80211_get_channel(
+				wiphy, band_5ghz.channels[channel].center_freq);
+		} else {
+			chandef->chan = ieee80211_get_channel(
+				wiphy, band_2ghz.channels[channel].center_freq);
+		}
+
+		chandef->width = 1;
+		chandef->center_freq1 = chandef->chan->center_freq;
+		chandef->center_freq2 = 0;
+
+		goto out;
 	}
 
 	status = nrf_wifi_fmac_get_channel(rpu_ctx_lnx->rpu_ctx,
