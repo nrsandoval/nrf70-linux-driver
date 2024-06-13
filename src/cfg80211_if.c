@@ -896,6 +896,8 @@ int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	def_dev_ctx->vif_ctx[vif_ctx_lnx->if_idx]->channel = channel;
+	
 	return 0;
 }
 
@@ -2263,9 +2265,9 @@ int nrf_wifi_cfg80211_get_channel(struct wiphy *wiphy,
 		def_dev_ctx = wifi_dev_priv(fmac_dev_ctx);
 
 		channel = def_dev_ctx->vif_ctx[vif_ctx_lnx->if_idx]->channel;
-		if (channel > 13) {
+		if (channel >= 14) {
 			chandef->chan = ieee80211_get_channel(
-				wiphy, band_5ghz.channels[channel].center_freq);
+				wiphy, band_5ghz.channels[channel - 14].center_freq);
 		} else {
 			chandef->chan = ieee80211_get_channel(
 				wiphy, band_2ghz.channels[channel].center_freq);
