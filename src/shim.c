@@ -421,6 +421,34 @@ void *skb_raw_pkt_from_nbuf(void *iface, void *frm,
 }
 #endif /* CONFIG_NRF700X_RAW_DATA_RX || CONFIG_NRF700X_PROMISC_DATA_RX */
 
+#if defined(CONFIG_NRF700X_RAW_DATA_TX)
+void *skb_raw_pkt_to_nbuf(void *frm)
+{
+	struct raw_tx_pkt_header *raw_tx_pkt = NULL;
+	int rpkt_len = sizeof(struct raw_tx_pkt_header);
+	struct sk_buff *skb = frm;
+	int pkt_len = shim_nbuf_data_size(skb);
+
+	if (skb_headroom(skb) < rpkt_len &&
+		pskb_expand_head(skb, rpkt_len, 0, GFP_ATOMIC)) {
+		pr_err("%s: Unable to expand headroom to %d\n", __func__, rpkt_len);
+		return NULL;
+	}
+
+	raw_tx_pkt = skb_push(skb, rpkt_len);
+	memset(raw_tx_pkt, 0, rpkt_len);
+
+	raw_tx_pkt->magic_num = NRF_WIFI_MAGIC_NUM_RAWTX;
+	raw_tx_pkt->data_rate = 0;
+	raw_tx_pkt->packet_length = pkt_len;
+	raw_tx_pkt->tx_mode = 1;
+	raw_tx_pkt->queue = 0;
+	raw_tx_pkt->raw_tx_flag = 0;
+
+	return skb;
+}
+#endif /* CONFIG_NRF700X_RAW_DATA_TX */
+
 static void *shim_llist_node_alloc(void)
 {
 	struct shim_llist_node *llist_node = NULL;

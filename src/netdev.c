@@ -15,6 +15,7 @@
 #include "fmac_main.h"
 #include "fmac_api.h"
 #include "fmac_util.h"
+#include "fmac_peer.h"
 #include "shim.h"
 #include "queue.h"
 
@@ -26,11 +27,14 @@ static void nrf_cfg80211_data_tx_routine(struct work_struct *w)
 		container_of(w, struct nrf_wifi_fmac_vif_ctx_lnx, ws_data_tx);
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
+	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	enum nrf_wifi_status status = NRF_WIFI_STATUS_FAIL;
 	void *netbuf = NULL;
+	unsigned char *ra = NULL;
 
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
+	def_dev_ctx = wifi_dev_priv(fmac_dev_ctx);
 
 	netbuf = nrf_wifi_utils_q_dequeue(fmac_dev_ctx->fpriv->opriv,
 					  vif_ctx_lnx->data_txq);
@@ -39,8 +43,20 @@ static void nrf_cfg80211_data_tx_routine(struct work_struct *w)
 		return;
 	}
 
-	status = nrf_wifi_fmac_start_xmit(rpu_ctx_lnx->rpu_ctx,
-					  vif_ctx_lnx->if_idx, netbuf);
+	// check if we are sending normal or raw
+	ra = nrf_wifi_util_get_ra(def_dev_ctx->vif_ctx[vif_ctx_lnx->if_idx], netbuf);
+	if (-1 == nrf_wifi_fmac_peer_get_id(fmac_dev_ctx, ra)) {
+		netbuf = skb_raw_pkt_to_nbuf(netbuf);
+		if (netbuf == NULL) {
+			return;
+		}
+
+		status = nrf_wifi_fmac_start_rawpkt_xmit(rpu_ctx_lnx->rpu_ctx,
+							vif_ctx_lnx->if_idx, netbuf);
+	} else {
+		status = nrf_wifi_fmac_start_xmit(rpu_ctx_lnx->rpu_ctx,
+						  vif_ctx_lnx->if_idx, netbuf);
+	}
 	if (status != NRF_WIFI_STATUS_SUCCESS) {
 		pr_err("%s: nrf_wifi_fmac_start_xmit failed\n", __func__);
 	}
@@ -200,7 +216,7 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 
 	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
 								vif_ctx_lnx->if_idx,
-								wdev->iftype == NL80211_IFTYPE_MONITOR ? NRF_WIFI_MONITOR_MODE : NRF_WIFI_STA_MODE);
+								wdev->iftype == NL80211_IFTYPE_MONITOR ? (NRF_WIFI_MONITOR_MODE | NRF_WIFI_TX_INJECTION_MODE) : NRF_WIFI_STA_MODE);
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_fmac_set_mode failed\n", __func__);
 		goto out;

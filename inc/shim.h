@@ -76,4 +76,8 @@ void *skb_raw_pkt_from_nbuf(void *iface, void *frm,
 			bool pkt_free);
 #endif /* CONFIG_NRF700X_RAW_DATA_RX || CONFIG_NRF700X_PROMISC_DATA_RX */
 
+#if defined(CONFIG_NRF700X_RAW_DATA_TX)
+void *skb_raw_pkt_to_nbuf(void *frm);
+#endif /* CONFIG_NRF700X_RAW_DATA_TX */
+
 #endif /* __SHIM_H__ */
