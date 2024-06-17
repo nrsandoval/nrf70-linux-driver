@@ -441,9 +441,13 @@ void *skb_raw_pkt_to_nbuf(void *frm)
 	raw_tx_pkt->magic_num = NRF_WIFI_MAGIC_NUM_RAWTX;
 	raw_tx_pkt->data_rate = 0;
 	raw_tx_pkt->packet_length = pkt_len;
-	raw_tx_pkt->tx_mode = 1;
-	raw_tx_pkt->queue = 0;
+	raw_tx_pkt->tx_mode = 1;//2; //0; //1;
+	raw_tx_pkt->queue = 0;//1;//4;//0;
 	raw_tx_pkt->raw_tx_flag = 0;
+
+	// skb_set_tail_pointer(skb, rpkt_len + pkt_len);
+
+	// pr_info("%s: Packet length=%d", __func__, pkt_len);
 
 	return skb;
 }

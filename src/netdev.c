@@ -27,14 +27,18 @@ static void nrf_cfg80211_data_tx_routine(struct work_struct *w)
 		container_of(w, struct nrf_wifi_fmac_vif_ctx_lnx, ws_data_tx);
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
-	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	enum nrf_wifi_status status = NRF_WIFI_STATUS_FAIL;
 	void *netbuf = NULL;
+#if CONFIG_NRF700X_RAW_DATA_TX
+	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	unsigned char *ra = NULL;
+#endif
 
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
+#if CONFIG_NRF700X_RAW_DATA_TX
 	def_dev_ctx = wifi_dev_priv(fmac_dev_ctx);
+#endif
 
 	netbuf = nrf_wifi_utils_q_dequeue(fmac_dev_ctx->fpriv->opriv,
 					  vif_ctx_lnx->data_txq);
@@ -44,19 +48,18 @@ static void nrf_cfg80211_data_tx_routine(struct work_struct *w)
 	}
 
 	// check if we are sending normal or raw
+#if CONFIG_NRF700X_RAW_DATA_TX
 	ra = nrf_wifi_util_get_ra(def_dev_ctx->vif_ctx[vif_ctx_lnx->if_idx], netbuf);
 	if (-1 == nrf_wifi_fmac_peer_get_id(fmac_dev_ctx, ra)) {
-		netbuf = skb_raw_pkt_to_nbuf(netbuf);
-		if (netbuf == NULL) {
-			return;
-		}
-
 		status = nrf_wifi_fmac_start_rawpkt_xmit(rpu_ctx_lnx->rpu_ctx,
-							vif_ctx_lnx->if_idx, netbuf);
+							vif_ctx_lnx->if_idx, skb_raw_pkt_to_nbuf(netbuf));
 	} else {
+#endif
 		status = nrf_wifi_fmac_start_xmit(rpu_ctx_lnx->rpu_ctx,
 						  vif_ctx_lnx->if_idx, netbuf);
+#if CONFIG_NRF700X_RAW_DATA_TX
 	}
+#endif
 	if (status != NRF_WIFI_STATUS_SUCCESS) {
 		pr_err("%s: nrf_wifi_fmac_start_xmit failed\n", __func__);
 	}
@@ -216,7 +219,14 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 
 	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
 								vif_ctx_lnx->if_idx,
-								wdev->iftype == NL80211_IFTYPE_MONITOR ? (NRF_WIFI_MONITOR_MODE | NRF_WIFI_TX_INJECTION_MODE) : NRF_WIFI_STA_MODE);
+								wdev->iftype == NL80211_IFTYPE_MONITOR ? 
+// TODO Tx injection doesn't seem to work as intended at the moment
+#if CONFIG_NRF700X_RAW_DATA_TX
+									(NRF_WIFI_MONITOR_MODE | NRF_WIFI_TX_INJECTION_MODE) : 
+#else
+									NRF_WIFI_MONITOR_MODE :
+#endif
+									NRF_WIFI_STA_MODE);
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_fmac_set_mode failed\n", __func__);
 		goto out;
