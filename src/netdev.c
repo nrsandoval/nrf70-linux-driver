@@ -292,6 +292,25 @@ out:
 	return status;
 }
 
+int nrf_wifi_set_mac_address(struct net_device *netdev, void *addr)
+{
+	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	unsigned char *mac_addr = addr;
+	int status = -1;
+
+	vif_ctx_lnx = netdev_priv(netdev);
+	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
+	
+	status = nrf_wifi_fmac_set_vif_macaddr(rpu_ctx_lnx->rpu_ctx,
+		vif_ctx_lnx->if_idx, mac_addr);
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_set_vif_macaddr failed\n", __func__);
+	}
+
+	return status;
+}
+
 void nrf_wifi_netdev_set_multicast_list(struct net_device *netdev)
 {
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
@@ -452,6 +471,7 @@ out:
 const struct net_device_ops nrf_wifi_netdev_ops = {
 	.ndo_open = nrf_wifi_netdev_open,
 	.ndo_stop = nrf_wifi_netdev_close,
+	.ndo_set_mac_address = nrf_wifi_set_mac_address,
 #ifdef CONFIG_NRF700X_DATA_TX
 	.ndo_start_xmit = nrf_wifi_netdev_start_xmit,
 #endif /* CONFIG_NRF700X_DATA_TX */
