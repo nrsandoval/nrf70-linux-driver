@@ -321,7 +321,13 @@ static void *shim_nbuf_data_put(void *nbuf, unsigned int size)
 
 static void *shim_nbuf_data_push(void *nbuf, unsigned int size)
 {
-	return skb_push(nbuf, size);
+	struct sk_buff *skb = (struct sk_buff *)nbuf;
+	if ((skb->data - size) < skb->head) {
+		// Prevents an issue where we push into the headspace
+		skb = skb_realloc_headroom(skb, size);
+		pr_info("%s: Reallocated headroom\n", __func__);
+	}
+	return skb_push(skb, size);
 }
 
 static void *shim_nbuf_data_pull(void *nbuf, unsigned int size)
