@@ -98,7 +98,9 @@ out:
 int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 {
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	struct net_device *netdev = NULL;
 	int status = -1;
 	pr_info("%s: deleting\n", __func__);
@@ -107,6 +109,8 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
+	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
+	def_dev_ctx = wifi_dev_priv(fmac_dev_ctx);
 
 	if (vif_ctx_lnx->if_idx == 0) {
 		pr_err("%s: deleting default interface not supported\n",
@@ -132,6 +136,7 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 	nrf_wifi_fmac_vif_clear_ctx(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx);
 	netdev = NULL;
 
+	def_dev_ctx->vif_ctx[vif_ctx_lnx->if_idx] = NULL;
 	// kfree(wdev);
 	// wdev = NULL;
 out:

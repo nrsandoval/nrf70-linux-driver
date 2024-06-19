@@ -176,10 +176,11 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 	struct wireless_dev *wdev = NULL;
 	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
 	int status = -1;
-	pr_info("%s: opening\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
+
+	pr_info("%s: opening idx=%d\n", __func__, vif_ctx_lnx->if_idx);
 
 	netdev->ethtool_ops = &nrf_wifi_ethtool_ops;
 	wdev = netdev->ieee80211_ptr;
@@ -256,12 +257,11 @@ int nrf_wifi_netdev_close(struct net_device *netdev)
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
 	int status = -1;
-	
-	pr_info("%s: Closing\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 
+	pr_info("%s: Closing idx=%d\n", __func__, vif_ctx_lnx->if_idx);
 	vif_info = kzalloc(sizeof(*vif_info), GFP_KERNEL);
 
 	if (!vif_info) {
@@ -393,6 +393,9 @@ void nrf_wifi_netdev_rx_sniffer_frm(void *os_vif_ctx, void *frm,
 	} else {
 		def_dev_ctx = wifi_dev_priv(vif_ctx_lnx->rpu_ctx->rpu_ctx);
 		for (i = 0; i < MAX_NUM_VIFS; i++) {
+			if (def_dev_ctx->vif_ctx[i] == NULL) {
+				continue;
+			}
 			vif_ctx_lnx = 
 				(struct nrf_wifi_fmac_vif_ctx_lnx
 					 *)(def_dev_ctx->vif_ctx[i]->os_vif_ctx);
@@ -423,6 +426,7 @@ void nrf_wifi_netdev_rx_sniffer_frm(void *os_vif_ctx, void *frm,
 out:
 	if (pkt_free) {
 		// kfree_skb(skb);
+		// pr_info("%s: free\n", __func__);
 	}
 }
 
