@@ -52,16 +52,31 @@ struct spi_device_id nrf7002[] = {
 
 static void *shim_mem_alloc(size_t size)
 {
+#if CONFIG_MEM_DEBUG
+	void *m = kmalloc(size, GFP_ATOMIC);
+	pr_info("%s: malloc %016lx\n", __func__, (long unsigned int)m);
+	return m;
+#else
 	return kmalloc(size, GFP_ATOMIC);
+#endif
 }
 
 static void *shim_mem_zalloc(size_t size)
 {
+#if CONFIG_MEM_DEBUG
+	void *m = kzalloc(size, GFP_ATOMIC);
+	pr_info("%s: zalloc %016lx\n", __func__, (long unsigned int)m);
+	return m;
+#else
 	return kzalloc(size, GFP_ATOMIC);
+#endif
 }
 
 static void shim_mem_free(void *addr)
 {
+#if CONFIG_MEM_DEBUG
+	pr_info("%s: free %016lx\n", __func__, (long unsigned int)addr);
+#endif
 	kfree((const void *)addr);
 }
 

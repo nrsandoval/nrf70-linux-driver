@@ -21,6 +21,7 @@
 
 #ifdef CONFIG_NRF700X_DATA_TX
 
+#if 1
 static void nrf_cfg80211_data_tx_routine(struct work_struct *w)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx =
@@ -93,7 +94,7 @@ static void nrf_cfg80211_queue_monitor_routine(struct work_struct *w)
 		schedule_work(&vif_ctx_lnx->ws_queue_monitor);
 	}
 }
-
+#endif
 netdev_tx_t nrf_wifi_netdev_start_xmit(struct sk_buff *skb,
 				       struct net_device *netdev)
 {
@@ -170,6 +171,12 @@ static const struct ethtool_ops nrf_wifi_ethtool_ops = {
 
 int nrf_wifi_netdev_open(struct net_device *netdev)
 {
+#if 0
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	vif_ctx_lnx = netdev_priv(netdev);
+	pr_info("%s: open idx=%d\n", __func__, vif_ctx_lnx->if_idx);
+	return 0;
+#else
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
@@ -249,10 +256,17 @@ out:
 
 	pr_info("%s: opening finished\n", __func__);
 	return status;
+#endif
 }
 
 int nrf_wifi_netdev_close(struct net_device *netdev)
 {
+#if 0
+	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	vif_ctx_lnx = netdev_priv(netdev);
+	pr_info("%s: closing idx=%d\n", __func__, vif_ctx_lnx->if_idx);
+	return 0;
+#else
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
@@ -290,6 +304,7 @@ out:
 
 	pr_info("%s: Closing finished\n", __func__);
 	return status;
+#endif
 }
 
 int nrf_wifi_set_mac_address(struct net_device *netdev, void *addr)
@@ -505,11 +520,17 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 		       __func__);
 		goto out;
 	}
+#if CONFIG_MEM_DEBUG
+	pr_info("%s: netdev addr=%016lx\n", __func__, (long unsigned int)netdev);
+#endif
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	vif_ctx_lnx->rpu_ctx = rpu_ctx_lnx;
 	vif_ctx_lnx->netdev = netdev;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
+#if CONFIG_MEM_DEBUG
+	pr_info("%s: vif_ctx_lnx addr=%016lx\n", __func__, (long unsigned int)vif_ctx_lnx);
+#endif
 
 	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
 		netdev->type = ARPHRD_IEEE80211_RADIOTAP; //ARPHRD_IEEE80211;
@@ -527,6 +548,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	netdev->needed_headroom = TX_BUF_HEADROOM;
 
 	netdev->priv_destructor = free_netdev;
+#if 1
 #ifdef CONFIG_NRF700X_DATA_TX
 	vif_ctx_lnx->data_txq =
 		nrf_wifi_utils_q_alloc(fmac_dev_ctx->fpriv->opriv);
@@ -538,6 +560,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 		  nrf_cfg80211_queue_monitor_routine);
 #endif
 
+#endif
 	SET_NETDEV_DEV(netdev, wiphy_dev(wdev->wiphy));
 	pr_info("%s: Registering lock=%d\n", __func__, hasLock);
 	
@@ -553,6 +576,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 		       ret);
 		goto err_reg_netdev;
 	}
+	wdev->netdev = netdev;
 
 err_reg_netdev:
 	if (ret) {
@@ -574,9 +598,19 @@ void nrf_wifi_netdev_del_vif(struct net_device *netdev, bool hasLock)
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
 
+	pr_info("%s: delete idx=%d\n"
+#if CONFIG_MEM_DEBUG
+		"netdev addr=%016lx\nvif_ctx_lnx=%016lx", __func__, 
+		vif_ctx_lnx->if_idx, (long unsigned int)netdev, (long unsigned int)vif_ctx_lnx);
+#else
+		, __func__, vif_ctx_lnx->if_idx);
+#endif
+
+#if 1
 	nrf_wifi_utils_q_free(fmac_dev_ctx->fpriv->opriv,
 			      vif_ctx_lnx->data_txq);
-
+#endif
+	
 	if (hasLock) {
 		unregister_netdevice(netdev);
 	} else {
