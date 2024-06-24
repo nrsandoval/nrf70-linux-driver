@@ -59,7 +59,7 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 		pr_err("%s: Unable to allocate memory\n", __func__);
 		goto err;
 	}
-#if CONFIG_MEM_DEBUG
+#ifdef CONFIG_MEM_DEBUG
 	pr_info("%s: add_vif_info=%016lx\n", __func__, (long unsigned int)add_vif_info);
 #endif
 
@@ -95,7 +95,9 @@ err:
 	}
 out:
 	if (add_vif_info) {
+#ifdef CONFIG_MEM_DEBUG
 		pr_info("%s: Free add_vif_info=%016lx\n", __func__, (long unsigned int)add_vif_info);
+#endif
 		kfree(add_vif_info);
 	}
 

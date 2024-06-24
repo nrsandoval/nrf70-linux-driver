@@ -520,7 +520,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 		       __func__);
 		goto out;
 	}
-#if CONFIG_MEM_DEBUG
+#ifdef CONFIG_MEM_DEBUG
 	pr_info("%s: netdev addr=%016lx\n", __func__, (long unsigned int)netdev);
 #endif
 
@@ -528,7 +528,7 @@ nrf_wifi_netdev_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	vif_ctx_lnx->rpu_ctx = rpu_ctx_lnx;
 	vif_ctx_lnx->netdev = netdev;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
-#if CONFIG_MEM_DEBUG
+#ifdef CONFIG_MEM_DEBUG
 	pr_info("%s: vif_ctx_lnx addr=%016lx\n", __func__, (long unsigned int)vif_ctx_lnx);
 #endif
 
@@ -599,7 +599,7 @@ void nrf_wifi_netdev_del_vif(struct net_device *netdev, bool hasLock)
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
 
 	pr_info("%s: delete idx=%d\n"
-#if CONFIG_MEM_DEBUG
+#ifdef CONFIG_MEM_DEBUG
 		"netdev addr=%016lx\nvif_ctx_lnx=%016lx", __func__, 
 		vif_ctx_lnx->if_idx, (long unsigned int)netdev, (long unsigned int)vif_ctx_lnx);
 #else

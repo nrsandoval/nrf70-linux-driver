@@ -124,7 +124,7 @@ nrf_wifi_wlan_fmac_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 		pr_err("%s: Unable to allocate memory for wdev\n", __func__);
 		goto out;
 	}
-#if CONFIG_MEM_DEBUG
+#ifdef CONFIG_MEM_DEBUG
 	pr_info("%s: wlan addr=%016lx\n", __func__, (long unsigned int)wdev);
 #endif
 
@@ -159,7 +159,7 @@ void nrf_wifi_wlan_fmac_del_vif(struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx,
 	nrf_wifi_netdev_del_vif(netdev, hasLock);
 
 	wdev = vif_ctx_lnx->wdev;
-#if CONFIG_MEM_DEBUG
+#ifdef CONFIG_MEM_DEBUG
 	pr_info("%s: Freeing wdev=%016lx\n", __func__, (long unsigned int)wdev);
 #endif
 	kfree(wdev);
