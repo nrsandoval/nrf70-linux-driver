@@ -279,21 +279,26 @@ out:
 	return status;
 }
 
-int nrf_wifi_set_mac_address(struct net_device *netdev, void *addr)
+int nrf_wifi_set_mac_address(struct net_device *netdev, void *p)
 {
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
-	unsigned char *mac_addr = addr;
+	struct sockaddr *addr = (struct sockaddr *)p;
+	unsigned char mac_addr[ETH_ALEN];
 	int status = -1;
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
-	
+
+	ether_addr_copy(mac_addr, addr->sa_data);
+
 	status = nrf_wifi_fmac_set_vif_macaddr(rpu_ctx_lnx->rpu_ctx,
 		vif_ctx_lnx->if_idx, mac_addr);
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_set_vif_macaddr failed\n", __func__);
 	}
+
+	ether_addr_copy(netdev->dev_addr, mac_addr);
 
 	return status;
 }
