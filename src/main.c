@@ -115,8 +115,6 @@ nrf_wifi_wlan_fmac_add_vif(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct wireless_dev *wdev = NULL;
 
-	pr_info("%s: wlan add vif\n", __func__);
-
 	/* Create a cfg80211 VIF */
 	wdev = kzalloc(sizeof(struct wireless_dev), GFP_KERNEL);
 
@@ -151,7 +149,6 @@ void nrf_wifi_wlan_fmac_del_vif(struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx,
 {
 	struct net_device *netdev = NULL;
 	struct wireless_dev *wdev = NULL;
-	pr_info("%s: del vif\n", __func__);
 
 	netdev = vif_ctx_lnx->netdev;
 
@@ -419,17 +416,13 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	enum nrf_wifi_status status = NRF_WIFI_STATUS_FAIL;
 #ifndef CONFIG_NRF700X_RADIO_TEST
 	unsigned char base_mac_addr[NRF_WIFI_ETH_ADDR_LEN];
-#if 1
 	struct nrf_wifi_umac_add_vif_info add_vif_info;
-#endif
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
 #if defined(CONFIG_BOARD_NRF7001)
 	enum op_band op_band = BAND_24G;
 #else /* CONFIG_BOARD_NRF7001 */
-#if 1
 	enum op_band op_band = BAND_ALL;
-#endif
 #endif /* CONFIG_BOARD_NRF7001 */
 #ifdef CONFIG_NRF_WIFI_LOW_POWER
 #ifndef CONFIG_NRF700X_RADIO_TEST
@@ -443,7 +436,6 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	struct nrf_wifi_tx_pwr_ceil_params tx_pwr_ceil_params;
 
 #ifndef CONFIG_NRF700X_RADIO_TEST
-#if 1
 	status = nrf_wifi_fmac_otp_mac_addr_get(rpu_ctx_lnx->rpu_ctx, 0,
 
 						base_mac_addr);
@@ -490,10 +482,7 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	}
 
 	rpu_ctx_lnx->def_vif_ctx = vif_ctx_lnx;
-#endif
-
 #endif /* !CONFIG_NRF700X_RA1DIO_TEST */
-#if 1
 #ifdef CONFIG_NRF700X_RADIO_TEST
 	status = nrf_wifi_wlan_fmac_dbgfs_radio_test_init(rpu_ctx_lnx);
 #else
@@ -504,7 +493,6 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 		       __func__);
 		goto out;
 	}
-#endif
 	status = nrf_wifi_fmac_ver_get(rpu_ctx_lnx->rpu_ctx, &fw_ver);
 
 	if (status != NRF_WIFI_STATUS_SUCCESS) {
@@ -518,7 +506,6 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 
 	configure_tx_pwr_settings(&tx_pwr_ctrl_params, &tx_pwr_ceil_params);
 
-#if 1
 #ifndef CONFIG_NRF700X_RADIO_TEST
 	status = nrf_wifi_fmac_dev_init(rpu_ctx_lnx->rpu_ctx,
 #ifdef CONFIG_NRF_WIFI_LOW_POWER
@@ -542,16 +529,13 @@ nrf_wifi_fmac_dev_init_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 		pr_err("%s: nrf_wifi_fmac_dev_init failed\n", __func__);
 		goto out;
 	}
-#endif
 #ifndef CONFIG_NRF700X_RADIO_TEST
-#if 1
 	status = nrf_wifi_fmac_set_vif_macaddr(
 		rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, base_mac_addr);
 	if (status != NRF_WIFI_STATUS_SUCCESS) {
 		pr_err("%s: MAC address change failed\n", __func__);
 		goto out;
 	}
-#endif
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
 out:
 #ifndef CONFIG_NRF700X_RADIO_TEST
@@ -586,9 +570,6 @@ void nrf_wifi_fmac_dev_deinit_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
 	def_dev_ctx = wifi_dev_priv(fmac_dev_ctx);
 
-	pr_info("%s: interface removal def_dev=%d vif=%d\n", __func__,
-			def_dev_ctx == NULL ? 0 : 1,
-			def_dev_ctx->vif_ctx[0] == NULL ? 0 : 1);
 	/* Delete all other interfaces */
 	for (i = 1; i < MAX_NUM_VIFS; i++) {
 		if (def_dev_ctx->vif_ctx[i]) {
@@ -603,14 +584,10 @@ void nrf_wifi_fmac_dev_deinit_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 			def_dev_ctx->vif_ctx[i] = NULL;
 		}
 	}
-	pr_info("%s: after removal\n", __func__);
 	/* Delete the default interface*/
 	vif_ctx_lnx = rpu_ctx_lnx->def_vif_ctx;
 	fmac_dev_ctx = rpu_ctx_lnx->rpu_ctx;
-	pr_info("%s: def vif=%d", __func__, vif_ctx_lnx == NULL ? 0 : 1);
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
-#if 1
-	pr_info("%s: deinit\n", __func__);
 #ifdef CONFIG_NRF700X_RADIO_TEST
 	nrf_wifi_fmac_dev_deinit_rt(rpu_ctx_lnx->rpu_ctx);
 	nrf_wifi_wlan_fmac_dbgfs_radio_test_deinit(rpu_ctx_lnx);
@@ -618,13 +595,12 @@ void nrf_wifi_fmac_dev_deinit_lnx(struct nrf_wifi_ctx_lnx *rpu_ctx_lnx)
 	nrf_wifi_fmac_dev_deinit(rpu_ctx_lnx->rpu_ctx);
 	nrf_wifi_wlan_fmac_dbgfs_deinit(rpu_ctx_lnx);
 #endif /* CONFIG_NRF700X_RADIO_TEST */
-#endif
 	if (vif_ctx_lnx == NULL) {
 		pr_info("%s: no default interface\n", __func__);
 		goto out;
 	}
 	if_idx = vif_ctx_lnx->if_idx;
-pr_info("%s: del default interface\n", __func__);
+
 #ifndef CONFIG_NRF700X_RADIO_TEST
 	/* Remove the default interface and unregister it from the netdev stack.
 	 * We need to take a rtnl_lock since the netdev stack expects it. In the
@@ -730,7 +706,6 @@ void nrf_wifi_cookie_rsp_callbk_fn(
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
 
 #ifdef CONFIG_NRF700X_STA_MODE
-#if 1
 static void nrf_wifi_process_rssi_from_rx(void *os_vif_ctx, signed short signal)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
@@ -751,7 +726,6 @@ static void nrf_wifi_process_rssi_from_rx(void *os_vif_ctx, signed short signal)
 	vif_ctx_lnx->rssi_record_timestamp_us =
 		nrf_wifi_osal_time_get_curr_us(fmac_dev_ctx->fpriv->opriv);
 }
-#endif
 #endif /* CONFIG_NRF700X_STA_MODE */
 
 void nrf_wifi_event_get_reg_callbk_fn(void *vif_ctx,
@@ -959,7 +933,6 @@ int __init nrf_wifi_init_lnx(void)
 
 #ifndef CONFIG_NRF700X_RADIO_TEST
 	memset(&callbk_fns, 0, sizeof(callbk_fns));
-#if 1
 	callbk_fns.if_carr_state_chg_callbk_fn =
 		&nrf_wifi_netdev_if_state_chg_callbk_fn;
 	callbk_fns.rx_frm_callbk_fn = &nrf_wifi_netdev_frame_rx_callbk_fn;
@@ -1001,7 +974,6 @@ int __init nrf_wifi_init_lnx(void)
 	callbk_fns.twt_teardown_callbk_fn = &nrf_wifi_twt_teardown_callbk_fn;
 #ifdef CONFIG_NRF_WIFI_LOW_POWER
 	callbk_fns.twt_sleep_callbk_fn = &nrf_wifi_twt_sleep_callbk_fn;
-#endif
 #endif
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
 

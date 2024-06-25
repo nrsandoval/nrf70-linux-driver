@@ -33,8 +33,6 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_add_vif_info *add_vif_info = NULL;
 	unsigned char mac_addr[ETH_ALEN];
-
-	pr_info("%s: Adding %s\n", __func__, name);
 	
 	ASSERT_RTNL();
 
@@ -68,7 +66,6 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 	} else {
 		add_vif_info->iftype = type;
 	}
-	pr_info("%s: type sent=%d type used=%d", __func__, type, add_vif_info->iftype);
 
 	memcpy(add_vif_info->ifacename, name, strlen(name));
 
@@ -80,7 +77,6 @@ struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 		pr_err("%s: nrf_wifi_fmac_add_vif failed\n", __func__);
 		goto err;
 	}
-	pr_info("%s: index=%d\n", __func__, vif_ctx_lnx->if_idx);
 
 	if (vif_ctx_lnx->if_idx == 0) {
 		rpu_ctx_lnx->def_vif_ctx = vif_ctx_lnx;
@@ -115,7 +111,6 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	struct net_device *netdev = NULL;
 	int status = -1;
-	pr_info("%s: deleting\n", __func__);
 
 	netdev = wdev->netdev;
 
@@ -130,10 +125,8 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 		goto out;
 	}
 
-	pr_info("%s: Deleting wlan vif\n", __func__);
 	nrf_wifi_wlan_fmac_del_vif(vif_ctx_lnx, false);
 
-	pr_info("%s: Deleting fmac vif\n", __func__);
 	status = nrf_wifi_fmac_del_vif(rpu_ctx_lnx->rpu_ctx,
 				       vif_ctx_lnx->if_idx);
 
@@ -142,18 +135,10 @@ int nrf_wifi_cfg80211_del_vif(struct wiphy *wiphy, struct wireless_dev *wdev)
 		goto out;
 	}
 
-	// nrf_wifi_netdev_del_vif(netdev, false);
-
-	// pr_info("%s: Clearing context\n", __func__);
-	// nrf_wifi_fmac_vif_clear_ctx(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx);
-	netdev = NULL;
-
 	def_dev_ctx->vif_ctx[vif_ctx_lnx->if_idx] = NULL;
-	// pr_info("%s: freeing wdev=%016lx\n", __func__, (long unsigned int)wdev);
-	// kfree(wdev);
+	netdev = NULL;
 	wdev = NULL;
 out:
-	pr_info("%s: Delete finished\n", __func__);
 	return status;
 }
 
@@ -922,14 +907,12 @@ int	nrf_wifi_cfg80211_set_monitor_channel(struct wiphy *wiphy,
 int nrf_wifi_cfg80211_scan(struct wiphy *wiphy,
 			   struct cfg80211_scan_request *req)
 {
-#if 1
 	struct wireless_dev *wdev = NULL;
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_scan_info *scan_info = NULL;
 	int status = -1, i;
 	wdev = req->wdev;
-	pr_info("%s: Scanning\n", __func__);
 
 	if (wdev->iftype == NL80211_IFTYPE_AP)
 		return -EOPNOTSUPP;
@@ -996,7 +979,6 @@ out:
 	if (scan_info)
 		kfree(scan_info);
 	return status;
-#endif
 }
 
 void nrf_wifi_cfg80211_scan_start_callbk_fn(
@@ -2387,7 +2369,6 @@ struct cfg80211_ops cfg80211_ops = {
 	.del_virtual_intf = nrf_wifi_cfg80211_del_vif,
 	.change_virtual_intf = nrf_wifi_cfg80211_chg_vif,
 
-#if 1
 	.add_key = nrf_wifi_cfg80211_add_key,
 	.del_key = nrf_wifi_cfg80211_del_key,
 	.set_default_key = nrf_wifi_cfg80211_set_def_key,
@@ -2404,9 +2385,7 @@ struct cfg80211_ops cfg80211_ops = {
 	.set_txq_params = nrf_wifi_cfg80211_set_txq_params,
 
 	.set_monitor_channel = nrf_wifi_cfg80211_set_monitor_channel,
-#endif
 	.scan = nrf_wifi_cfg80211_scan,
-#if 1
 	.auth = nrf_wifi_cfg80211_auth,
 	.assoc = nrf_wifi_cfg80211_assoc,
 	.deauth = nrf_wifi_cfg80211_deauth,
@@ -2430,7 +2409,6 @@ struct cfg80211_ops cfg80211_ops = {
 	.get_tx_power = nrf_wifi_cfg80211_get_tx_power,
 	.get_channel = nrf_wifi_cfg80211_get_channel,
 	.set_wiphy_params = nrf_wifi_cfg80211_set_wiphy_params,
-#endif
 };
 #else /* CONFIG_NRF700X_RADIO_TEST */
 struct cfg80211_ops cfg80211_ops = {};
