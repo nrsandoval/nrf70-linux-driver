@@ -22,6 +22,8 @@ extern const struct ieee80211_iface_combination iface_combinations[];
 int get_scan_results;
 unsigned long long cmd_frame_cookie_g;
 
+#define CARR_ON_TIMEOUT_MS 5000
+
 #ifndef CONFIG_NRF700X_RADIO_TEST
 struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
 					       const char *name,
@@ -177,6 +179,11 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 		status = 0;
 		// If we are switching from or to monitor mode, then we don't need to change virtual interface
 		goto update_if;
+	} else if (iftype == NL80211_IFTYPE_AP) {
+		pr_info("%s: Changing to ap\n", __func__);
+		iftype = NRF_WIFI_IFTYPE_AP;
+		vif_info->iftype = iftype;
+		vif_info->nrf_wifi_use_4addr = 0;
 	}
 
 	status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
@@ -417,7 +424,11 @@ int nrf_wifi_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_start_ap_info *start_ap_info = NULL;
+#if 0
+	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
+#endif
 	int status = -1;
+	unsigned int count = 500;
 
 	wdev = netdev->ieee80211_ptr;
 
@@ -535,9 +546,51 @@ int nrf_wifi_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *netdev,
 		start_ap_info->p2p_go_ctwindow = params->p2p_ctwindow;
 		start_ap_info->p2p_opp_ps = params->p2p_opp_ps;
 	}
+
+	pr_info("%s: Starting\n", __func__);
+	vif_ctx_lnx->if_carr_state = NRF_WIFI_FMAC_IF_CARR_STATE_OFF;
+	status = nrf_wifi_fmac_start_ap(rpu_ctx_lnx->rpu_ctx, 
+									vif_ctx_lnx->if_idx,
+									start_ap_info);
+	if (status != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: nrf_wifi_fmac_start_ap failed", __func__);
+		goto out;
+	}
+
+	while(vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_ON &&
+			count-- > 0) { msleep(1); }
+
+	if (vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_ON) {
+		pr_err("%s: Carrier on event not received in 5000ms", __func__);
+	}
+#if 0
+	vif_info = kzalloc(sizeof(*vif_info), GFP_KERNEL);
+
+	if (!vif_info) {
+		pr_err("%s: Unable to allocate memory\n", __func__);
+		goto out;
+	}
+
+	vif_info->state = 1;
+
+	vif_info->if_index = vif_ctx_lnx->if_idx;
+
+	status = nrf_wifi_fmac_chg_vif_state(rpu_ctx_lnx->rpu_ctx,
+					     vif_ctx_lnx->if_idx, vif_info);
+
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
+		goto out;
+	}
+#endif
 out:
 	if (start_ap_info)
 		kfree(start_ap_info);
+
+#if 0
+	if (vif_info)
+		kfree(vif_info);
+#endif
 
 	return status;
 }
@@ -580,6 +633,14 @@ int nrf_wifi_cfg80211_chg_bcn(struct wiphy *wiphy, struct net_device *netdev,
 
 		bcn_info->beacon_data.probe_resp_len = params->probe_resp_len;
 	}
+
+	status = nrf_wifi_fmac_chg_bcn(rpu_ctx_lnx->rpu_ctx,
+									vif_ctx_lnx->if_idx,
+									bcn_info);
+	if (status != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: nrf_wifi_fmac_chg_bcn failed\n", __func__);
+		goto out;
+	}
 out:
 	if (bcn_info)
 		kfree(bcn_info);
@@ -598,6 +659,12 @@ int nrf_wifi_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *netdev)
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
+
+	status = nrf_wifi_fmac_stop_ap(rpu_ctx_lnx->rpu_ctx,
+									vif_ctx_lnx->if_idx);
+	if (status != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: nrf_wifi_fmac_stop_ap failed\n", __func__);
+	}
 
 	return status;
 }
@@ -817,6 +884,8 @@ int nrf_wifi_cfg80211_chg_bss(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_umac_bss_info *bss_info = NULL;
 	int status = -1;
 
+	pr_info("%s: changing\n", __func__);
+
 	wdev = netdev->ieee80211_ptr;
 
 	vif_ctx_lnx = netdev_priv(netdev);
@@ -842,6 +911,12 @@ int nrf_wifi_cfg80211_chg_bss(struct wiphy *wiphy, struct net_device *netdev,
 	if ((params->p2p_ctwindow > 0) && (params->p2p_ctwindow < 127)) {
 		bss_info->p2p_go_ctwindow = params->p2p_ctwindow;
 		bss_info->p2p_opp_ps = params->p2p_opp_ps;
+	}
+
+	status = nrf_wifi_fmac_set_bss(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, bss_info);
+	if (status != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: nrf_wifi_fmac_set_bss failed\n", __func__);
+		goto out;
 	}
 
 out:

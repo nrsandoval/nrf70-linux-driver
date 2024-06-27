@@ -55,6 +55,9 @@ static void nrf_cfg80211_data_tx_routine(struct work_struct *w)
 							vif_ctx_lnx->if_idx, skb_raw_pkt_to_nbuf(netbuf));
 	} else {
 #endif
+		if ((vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_ON)) {
+				return;
+			}
 		status = nrf_wifi_fmac_start_xmit(rpu_ctx_lnx->rpu_ctx,
 						  vif_ctx_lnx->if_idx, netbuf);
 #if CONFIG_NRF700X_RAW_DATA_TX
@@ -175,13 +178,23 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
 	struct wireless_dev *wdev = NULL;
 	struct nrf_wifi_fmac_reg_info reg_domain_info = {0};
+	enum wifi_operation_modes mode = NRF_WIFI_STA_MODE;
 	int status = -1;
+
+	pr_info("%s: open\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 
 	netdev->ethtool_ops = &nrf_wifi_ethtool_ops;
 	wdev = netdev->ieee80211_ptr;
+
+#if 0
+	if (wdev->iftype == NL80211_IFTYPE_AP) {
+		status = 0;
+		goto out;
+	}
+#endif
 
 	vif_info = kzalloc(sizeof(*vif_info), GFP_KERNEL);
 
@@ -212,16 +225,22 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 		goto out;
 	}
 
-	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
-								vif_ctx_lnx->if_idx,
-								wdev->iftype == NL80211_IFTYPE_MONITOR ? 
+	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
 // TODO Tx injection doesn't seem to work as intended at the moment
 #if CONFIG_NRF700X_RAW_DATA_TX
-									(NRF_WIFI_MONITOR_MODE | NRF_WIFI_TX_INJECTION_MODE) : 
+		mode = NRF_WIFI_MONITOR_MODE | NRF_WIFI_TX_INJECTION_MODE;
 #else
-									NRF_WIFI_MONITOR_MODE :
+		mode = NRF_WIFI_MONITOR_MODE;
 #endif
-									NRF_WIFI_STA_MODE);
+	} else if (wdev->iftype == NL80211_IFTYPE_AP) {
+		mode = NRF_WIFI_AP_MODE;
+	} else {
+		mode = NRF_WIFI_STA_MODE;
+	}
+
+	status = nrf_wifi_fmac_set_mode(rpu_ctx_lnx->rpu_ctx,
+								vif_ctx_lnx->if_idx,
+								mode);
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_fmac_set_mode failed\n", __func__);
 		goto out;
@@ -441,7 +460,7 @@ enum nrf_wifi_status nrf_wifi_netdev_if_state_chg_callbk_fn(
 	enum nrf_wifi_status status = NRF_WIFI_STATUS_FAIL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct net_device *netdev = NULL;
-
+	pr_info("%s: state chg carr=%d\n", __func__, if_state);
 	if (!vif_ctx) {
 		pr_err("%s: Invalid parameters\n", __func__);
 		goto out;
@@ -458,6 +477,7 @@ enum nrf_wifi_status nrf_wifi_netdev_if_state_chg_callbk_fn(
 		pr_err("%s: Invalid interface state %d\n", __func__, if_state);
 		goto out;
 	}
+	vif_ctx_lnx->if_carr_state = if_state;
 
 	status = NRF_WIFI_STATUS_SUCCESS;
 out:

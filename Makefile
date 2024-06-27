@@ -76,8 +76,6 @@ OBJS += $(OSAL_DIR)/fw_if/umac_if/src/rx.o
 OBJS += $(OSAL_DIR)/fw_if/umac_if/src/tx.o
 OBJS += $(OSAL_DIR)/fw_if/umac_if/src/fmac_vif.o
 OBJS += $(OSAL_DIR)/fw_if/umac_if/src/fmac_peer.o
-endif
-ifeq ($(MODE), AP)
 OBJS += $(OSAL_DIR)/fw_if/umac_if/src/fmac_ap.o
 endif
 
@@ -147,6 +145,7 @@ ccflags-y += \
 	     -DCONFIG_NRF700X_RPU_PS_IDLE_TIMEOUT_MS=10 \
 		 -DCONFIG_NRF700X_RAW_DATA_RX=1 \
 		 -DCONFIG_NRF700X_RAW_DATA_TX=0 \
+		 -DCONFIG_NRF700X_AP_MODE=1 \
 		 -DCONFIG_NRF700X_PROMISC_DATA_RX=1
 
 ifneq ($(MODE), RADIO-TEST)
