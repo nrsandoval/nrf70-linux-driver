@@ -686,6 +686,7 @@ void nrf_wifi_cookie_rsp_callbk_fn(
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct cookie_info *cookie_info = NULL;
+	pr_info("%s: cookie\n", __func__);
 
 	vif_ctx_lnx = os_vif_ctx;
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -968,8 +969,8 @@ int __init nrf_wifi_init_lnx(void)
 	callbk_fns.roc_callbk_fn = &nrf_wifi_cfg80211_roc_callbk_fn;
 	callbk_fns.roc_cancel_callbk_fn =
 		&nrf_wifi_cfg80211_roc_cancel_callbk_fn;
-	callbk_fns.tx_status_callbk_fn = &nrf_wifi_cfg80211_tx_status_callbk_fn;
-
+	callbk_fns.mgmt_tx_status = &nrf_wifi_cfg80211_tx_status_callbk_fn;
+	// callbk_fns.mgmt_tx_status = &nrf_wifi_cfg80211_mgmt_tx_status_callbk_fn;
 	callbk_fns.twt_config_callbk_fn = &nrf_wifi_twt_config_callbk_fn;
 	callbk_fns.twt_teardown_callbk_fn = &nrf_wifi_twt_teardown_callbk_fn;
 #ifdef CONFIG_NRF_WIFI_LOW_POWER

@@ -14,7 +14,7 @@ static void nrf_wifi_wlan_fmac_dbgfs_stats_show_host(
 	struct seq_file *m, struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx,
 	struct rpu_host_stats *stats)
 {
-#ifdef DEBUG_MODE_SUPPORT
+#if 0
 	int i = 0;
 	unsigned int cnt = 0;
 #endif /* DEBUG_MODE_SUPPORT */
@@ -23,7 +23,7 @@ static void nrf_wifi_wlan_fmac_dbgfs_stats_show_host(
 	seq_printf(m, "total_tx_pkts =%llu\n", stats->total_tx_pkts);
 	seq_printf(m, "total_tx_done_pkts = %llu\n", stats->total_tx_done_pkts);
 	seq_printf(m, "total_rx_pkts = %llu\n", stats->total_rx_pkts);
-#ifdef DEBUG_MODE_SUPPORT
+#if 0
 
 	for (i = 0; i < fmac_dev_ctx->fpriv->data_config.max_tx_aggregation;
 	     i++) {
@@ -520,7 +520,7 @@ static int nrf_wifi_wlan_fmac_dbgfs_stats_show(struct seq_file *m, void *v)
 	stats = kzalloc(sizeof(*stats), GFP_KERNEL);
 
 	status = nrf_wifi_fmac_stats_get(rpu_ctx_lnx->rpu_ctx,
-#ifdef DEBUG_MODE_SUPPORT
+#if 0
 					 stats_type,
 #endif /* DEBUG_MODE_SUPPORT */
 					 op_mode, stats);

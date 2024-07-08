@@ -60,4 +60,8 @@ void nrf_wifi_cfg80211_roc_cancel_callbk_fn(
 void nrf_wifi_cfg80211_rx_bcn_prb_rsp_callbk_fn(void *os_vif_ctx, void *frm,
 						unsigned short frequency,
 						short signal);
+// void nrf_wifi_cfg80211_mgmt_tx_status_callbk_fn(void *if_priv,
+// 			struct nrf_wifi_umac_event_mlme *mlme_event,
+// 			unsigned int event_len);
+// void nrf_wifi_channel_to_cfg80211_channel(void *os_vif_ctx, )
 #endif /* __CFG80211_IF_H__ */

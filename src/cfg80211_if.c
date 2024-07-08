@@ -181,11 +181,11 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 		goto update_if;
 	} else if (iftype == NL80211_IFTYPE_AP) {
 		pr_info("%s: Changing to ap\n", __func__);
-		iftype = NRF_WIFI_IFTYPE_AP;
-		vif_info->iftype = iftype;
+		vif_info->iftype = NRF_WIFI_IFTYPE_AP;
 		vif_info->nrf_wifi_use_4addr = 0;
 	}
 
+	vif_ctx_lnx->event_set_if = 0;q
 	status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
 				       	vif_ctx_lnx->if_idx, vif_info);
 	if (status == NRF_WIFI_STATUS_FAIL) {
@@ -211,7 +211,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	}
 
 	nrf_wifi_fmac_vif_update_if_type(rpu_ctx_lnx->rpu_ctx,
-					 vif_ctx_lnx->if_idx, iftype);
+					 vif_ctx_lnx->if_idx, vif_info->iftype );
 
 update_if:
 	wdev->iftype = iftype;
@@ -444,6 +444,7 @@ int nrf_wifi_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *netdev,
 
 	start_ap_info->beacon_interval = params->beacon_interval;
 	start_ap_info->dtim_period = params->dtim_period;
+	pr_info("%s: beacon int=%d", __func__, start_ap_info->beacon_interval);
 	start_ap_info->auth_type = params->auth_type;
 
 	if (params->privacy == 1)
@@ -500,6 +501,8 @@ int nrf_wifi_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *netdev,
 		memcpy(start_ap_info->connect_common_info.cipher_suites_pairwise,
 		       params->crypto.ciphers_pairwise,
 		       params->crypto.n_ciphers_pairwise * 4);
+		// memset(start_ap_info->connect_common_info.cipher_suites_pairwise, 0, 
+		// 		params->crypto.n_ciphers_pairwise * 4);
 
 		start_ap_info->connect_common_info.num_cipher_suites_pairwise =
 			(params->crypto.n_ciphers_pairwise * 4);
@@ -541,11 +544,12 @@ int nrf_wifi_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *netdev,
 		start_ap_info->beacon_data.probe_resp_len =
 			params->beacon.probe_resp_len;
 	}
-
+#if 0
 	if ((params->p2p_ctwindow > 0) && (params->p2p_ctwindow < 127)) {
 		start_ap_info->p2p_go_ctwindow = params->p2p_ctwindow;
 		start_ap_info->p2p_opp_ps = params->p2p_opp_ps;
 	}
+#endif
 
 	pr_info("%s: Starting\n", __func__);
 	vif_ctx_lnx->if_carr_state = NRF_WIFI_FMAC_IF_CARR_STATE_OFF;
@@ -678,7 +682,7 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_umac_add_sta_info *add_sta_info = NULL;
 	struct nl80211_sta_flag_update *flags2 = NULL;
 	int status = -1;
-
+	pr_info("%s: adding\n", __func__);
 	wdev = netdev->ieee80211_ptr;
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
@@ -754,6 +758,12 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 
 	if (params->max_sp)
 		add_sta_info->wme_max_sp = params->max_sp;
+
+	status = nrf_wifi_fmac_add_sta(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, add_sta_info);
+	if (status != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: nrf_wifi_fmac_add_sta failed\n", __func__);
+		goto out;
+	}
 out:
 	if (add_sta_info)
 		kfree(add_sta_info);
@@ -769,6 +779,8 @@ int nrf_wifi_cfg80211_del_sta(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_del_sta_info *del_sta_info = NULL;
 	int status = -1;
+
+	pr_info("%s: deleting\n", __func__);
 
 	wdev = netdev->ieee80211_ptr;
 
@@ -791,6 +803,12 @@ int nrf_wifi_cfg80211_del_sta(struct wiphy *wiphy, struct net_device *netdev,
 	if (params->reason_code)
 		del_sta_info->reason_code = params->reason_code;
 
+	status = nrf_wifi_fmac_del_sta(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, del_sta_info);
+	if (status != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: nrf_wifi_fmac_del_sta failed\n", __func__);
+		goto out;
+	}
+
 out:
 	if (del_sta_info)
 		kfree(del_sta_info);
@@ -808,6 +826,8 @@ int nrf_wifi_cfg80211_chg_sta(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_sta_flag_update *flags2_info = NULL;
 	struct nl80211_sta_flag_update *flags2 = NULL;
 	int status = -1;
+
+	pr_info("%s: Changing\n", __func__);
 
 	wdev = netdev->ieee80211_ptr;
 
@@ -988,10 +1008,10 @@ int nrf_wifi_cfg80211_scan(struct wiphy *wiphy,
 	struct nrf_wifi_umac_scan_info *scan_info = NULL;
 	int status = -1, i;
 	wdev = req->wdev;
-
+#if 1
 	if (wdev->iftype == NL80211_IFTYPE_AP)
 		return -EOPNOTSUPP;
-
+#endif
 	if (req->n_channels > NRF_WIFI_SCAN_MAX_NUM_FREQUENCIES)
 		return -EINVAL;
 
@@ -1213,6 +1233,8 @@ int nrf_wifi_cfg80211_auth(struct wiphy *wiphy, struct net_device *netdev,
 	const u8 *ssid_ie = NULL;
 	int status = -1;
 
+	pr_info("%s: auth\n", __func__);
+
 	wdev = netdev->ieee80211_ptr;
 
 	vif_ctx_lnx = netdev_priv(netdev);
@@ -1281,7 +1303,7 @@ int nrf_wifi_cfg80211_auth(struct wiphy *wiphy, struct net_device *netdev,
 		       (unsigned int)req->auth_data_len);
 		pr_err("%s: SAE DATA DUMP:\n", __func__);
 		print_hex_dump(KERN_DEBUG, "", DUMP_PREFIX_NONE, 16, 1,
-			       req->sae_data, (unsigned int)req->auth_data_len,
+			       req->auth_data, (unsigned int)req->auth_data_len,
 			       1);
 
 		pr_err("\n%s: SAE DATA DUMP send to UMAC:\n", __func__);
@@ -1310,7 +1332,7 @@ void nrf_wifi_cfg80211_auth_resp_callbk_fn(
 	unsigned int event_len)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
-
+	pr_info("%s: auth resp\n", __func__);
 	vif_ctx_lnx = os_vif_ctx;
 
 	cfg80211_rx_mlme_mgmt(vif_ctx_lnx->netdev, auth_resp_event->frame.frame,
@@ -1326,7 +1348,7 @@ int nrf_wifi_cfg80211_assoc(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	const u8 *ssid_ie = NULL;
 	int status = -1;
-
+	pr_info("%s: assoc\n", __func__);
 	wdev = netdev->ieee80211_ptr;
 
 	vif_ctx_lnx = netdev_priv(netdev);
@@ -1391,7 +1413,7 @@ void nrf_wifi_cfg80211_assoc_resp_callbk_fn(
 	unsigned int event_len)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
-
+	pr_info("%s: assoc resp\n", __func__);
 	vif_ctx_lnx = os_vif_ctx;
 
 	cfg80211_rx_assoc_resp(vif_ctx_lnx->netdev, vif_ctx_lnx->bss,
@@ -1522,6 +1544,7 @@ int nrf_wifi_cfg80211_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_mgmt_tx_info *mgmt_tx_info = NULL;
 	int status = -1;
+	pr_info("%s: mgmt tx\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -1599,6 +1622,9 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 	struct nrf_wifi_umac_mgmt_frame_info *frame_info = NULL;
 	struct nrf_wifi_cfg80211_mgmt_registration *reg = NULL;
 	bool frame_type_match = false;
+	int status = -1;
+
+	pr_info("%s: Updating framge reg\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -1618,6 +1644,21 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 		break;
 	}
 
+	if (!frame_type_match) {
+		goto out;
+	}
+
+	frame_info->frame_type = le16_to_cpu(reg->frame_type);
+	frame_info->frame_match.frame_match_len = reg->match_len;
+
+	status = nrf_wifi_fmac_mgmt_frame_reg(rpu_ctx_lnx->rpu_ctx,
+										vif_ctx_lnx->if_idx,
+										frame_info);
+	if (status != NRF_WIFI_STATUS_SUCCESS) {
+		pr_err("%s: nrf_wifi_fmac_mgmt_frame_reg failed", __func__);
+		goto out;
+	}
+
 out:
 	if (frame_info)
 		kfree(frame_info);
@@ -1632,6 +1673,7 @@ void nrf_wifi_cfg80211_mgmt_rx_callbk_fn(
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 
 	vif_ctx_lnx = os_vif_ctx;
+	pr_info("%s: mgmt rx callback\n", __func__);
 
 	cfg80211_rx_mgmt(vif_ctx_lnx->netdev->ieee80211_ptr,
 			 mgmt_rx_event->frequency, mgmt_rx_event->rx_signal_dbm,
@@ -1646,6 +1688,7 @@ void nrf_wifi_cfg80211_unprot_mlme_mgmt_rx_callbk_fn(
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 
+	pr_info("%s: rx callback\n", __func__);
 	vif_ctx_lnx = os_vif_ctx;
 
 	cfg80211_rx_unprot_mlme_mgmt(vif_ctx_lnx->netdev,
@@ -1663,6 +1706,8 @@ void nrf_wifi_cfg80211_tx_status_callbk_fn(
 	struct cookie_info *cookie_info = NULL;
 	struct cookie_info *tmp = NULL;
 	bool ack_event = false;
+
+	pr_info("%s: tx status\n", __func__);
 
 	vif_ctx_lnx = os_vif_ctx;
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -1692,6 +1737,14 @@ void nrf_wifi_cfg80211_tx_status_callbk_fn(
 				tx_status_event->frame.frame_len, ack_event,
 				GFP_ATOMIC);
 }
+
+// void nrf_wifi_cfg80211_mgmt_tx_status_callbk_fn(void *os_vif_ctx,
+// 			struct nrf_wifi_umac_event_mlme *mlme_event,
+// 			unsigned int event_len)
+// {
+// 	pr_info("%s: callback\n", __func__);
+// 	nrf_wifi_cfg80211_tx_status_callbk_fn(os_vif_ctx, mlme_event, event_len);
+// }
 
 int nrf_wifi_cfg80211_start_p2p_dev(struct wiphy *wiphy,
 				    struct wireless_dev *wdev)
@@ -2457,7 +2510,7 @@ struct cfg80211_ops cfg80211_ops = {
 	.del_station = nrf_wifi_cfg80211_del_sta,
 	.change_station = nrf_wifi_cfg80211_chg_sta,
 	.change_bss = nrf_wifi_cfg80211_chg_bss,
-	.set_txq_params = nrf_wifi_cfg80211_set_txq_params,
+	// .set_txq_params = nrf_wifi_cfg80211_set_txq_params,
 
 	.set_monitor_channel = nrf_wifi_cfg80211_set_monitor_channel,
 	.scan = nrf_wifi_cfg80211_scan,
@@ -2467,8 +2520,8 @@ struct cfg80211_ops cfg80211_ops = {
 	.disassoc = nrf_wifi_cfg80211_disassoc,
 	.mgmt_tx = nrf_wifi_cfg80211_mgmt_tx,
 	.update_mgmt_frame_registrations = nrf_wifi_cfg80211_mgmt_frame_reg,
-	.start_p2p_device = nrf_wifi_cfg80211_start_p2p_dev,
-	.stop_p2p_device = nrf_wifi_cfg80211_stop_p2p_dev,
+	// .start_p2p_device = nrf_wifi_cfg80211_start_p2p_dev,
+	// .stop_p2p_device = nrf_wifi_cfg80211_stop_p2p_dev,
 	.remain_on_channel = nrf_wifi_cfg80211_remain_on_channel,
 	.cancel_remain_on_channel = nrf_wifi_cfg80211_cancel_remain_on_channel,
 
@@ -2610,10 +2663,11 @@ void wiphy_init(struct wiphy *wiphy)
 
 	wiphy->interface_modes =
 		BIT(NL80211_IFTYPE_STATION) | BIT(NL80211_IFTYPE_AP) |
-		BIT(NL80211_IFTYPE_P2P_GO) | BIT(NL80211_IFTYPE_P2P_CLIENT) |
+		// BIT(NL80211_IFTYPE_P2P_GO) | BIT(NL80211_IFTYPE_P2P_CLIENT) |
 		BIT(NL80211_IFTYPE_MONITOR);
 
 	wiphy->software_iftypes |= BIT(NL80211_IFTYPE_MONITOR);
+	// wiphy->software_iftypes |= BIT(NL80211_IFTYPE_AP);
 
 	wiphy->iface_combinations = iface_combinations;
 	wiphy->n_iface_combinations = 1;

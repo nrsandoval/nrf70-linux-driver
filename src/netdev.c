@@ -233,6 +233,7 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 		mode = NRF_WIFI_MONITOR_MODE;
 #endif
 	} else if (wdev->iftype == NL80211_IFTYPE_AP) {
+		pr_info("%s: ap mode\n", __func__);
 		mode = NRF_WIFI_AP_MODE;
 	} else {
 		mode = NRF_WIFI_STA_MODE;
@@ -292,6 +293,7 @@ int nrf_wifi_netdev_close(struct net_device *netdev)
 
 	netif_carrier_off(netdev);
 out:
+	pr_info("%s: Closed\n", __func__);
 	if (vif_info)
 		kfree(vif_info);
 
