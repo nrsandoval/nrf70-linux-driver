@@ -153,6 +153,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_chg_vif_attr_info *vif_info = NULL;
+	struct nrf_wifi_umac_chg_vif_state_info *vif_state_info = NULL;
 	int status = -1;
 	unsigned int count = 50;
 
@@ -164,9 +165,15 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 
 	vif_info = kzalloc(sizeof(*vif_info), GFP_KERNEL);
+	vif_state_info = kzalloc(sizeof(*vif_state_info), GFP_KERNEL);
 
 	if (!vif_info) {
 		pr_err("%s: Unable to allocate memory\n", __func__);
+		goto out;
+	}
+
+	if (iftype == wdev->iftype) {
+		pr_warn("%s: already set to interface type\n", __func__);
 		goto out;
 	}
 
@@ -185,6 +192,30 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 		vif_info->nrf_wifi_use_4addr = 0;
 	}
 
+#if 0
+	// First bring interface down
+	vif_state_info->state = 0;
+	vif_state_info->if_index = vif_ctx_lnx->if_idx;
+
+	status = nrf_wifi_fmac_chg_vif_state(rpu_ctx_lnx->rpu_ctx,
+					     vif_ctx_lnx->if_idx, vif_state_info);
+
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
+		goto out;
+	}
+
+	while(vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_OFF &&
+		count-- > 0) {
+		msleep(200);
+	}
+
+	if (vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_OFF) {
+		pr_err("%s: Unable to bring interface down\n", __func__);
+	}
+	count = 50;
+#endif
+
 	vif_ctx_lnx->event_set_if = 0;
 	status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
 				       	vif_ctx_lnx->if_idx, vif_info);
@@ -196,7 +227,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	pr_debug("%s: Waiting for response from RPU (change VIF)\n", __func__);
 
 	while (!vif_ctx_lnx->event_set_if && (count-- > 0))
-		msleep(1000);
+		msleep_interruptible(200);
 
 	if (!vif_ctx_lnx->event_set_if) {
 		status = -ETIMEDOUT;
@@ -213,6 +244,29 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 	nrf_wifi_fmac_vif_update_if_type(rpu_ctx_lnx->rpu_ctx,
 					 vif_ctx_lnx->if_idx, vif_info->iftype );
 
+#if 0
+	// Bring interface back up
+	vif_state_info->state = 1;
+	vif_state_info->if_index = vif_ctx_lnx->if_idx;
+
+	status = nrf_wifi_fmac_chg_vif_state(rpu_ctx_lnx->rpu_ctx,
+					     vif_ctx_lnx->if_idx, vif_state_info);
+
+	if (status == NRF_WIFI_STATUS_FAIL) {
+		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
+		goto out;
+	}
+
+	while(vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_ON &&
+		count-- > 0) {
+		msleep(200);
+	}
+
+	if (vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_ON) {
+		pr_err("%s: Unable to bring interface down\n", __func__);
+	}
+#endif
+
 update_if:
 	wdev->iftype = iftype;
 	nrf_wifi_netdev_chg_vif(netdev);
@@ -222,6 +276,9 @@ out:
 
 	if (vif_info)
 		kfree(vif_info);
+
+	if (vif_state_info)
+		kfree(vif_state_info);
 
 	return status;
 }
@@ -428,7 +485,7 @@ int nrf_wifi_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_umac_chg_vif_state_info *vif_info = NULL;
 #endif
 	int status = -1;
-	unsigned int count = 500;
+	unsigned int count = 5000;
 
 	wdev = netdev->ieee80211_ptr;
 
@@ -562,7 +619,7 @@ int nrf_wifi_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *netdev,
 	}
 
 	while(vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_ON &&
-			count-- > 0) { msleep(1); }
+			count-- > 0) { msleep_interruptible(1); }
 
 	if (vif_ctx_lnx->if_carr_state != NRF_WIFI_FMAC_IF_CARR_STATE_ON) {
 		pr_err("%s: Carrier on event not received in 5000ms", __func__);
@@ -1597,6 +1654,10 @@ int nrf_wifi_cfg80211_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 
 	/* Going to wpa_supplicant */
 	*cookie = cmd_frame_cookie_g;
+	pr_info("%s: Sending frame to RPU: cookie=%lld wait_time=%d no_ack=%d", __func__,
+			mgmt_tx_info->host_cookie,
+			mgmt_tx_info->dur,
+			mgmt_tx_info->nrf_wifi_flags & NRF_WIFI_CMD_FRAME_DONT_WAIT_FOR_ACK ? 1 : 0);
 
 	status = nrf_wifi_fmac_mgmt_tx(rpu_ctx_lnx->rpu_ctx,
 				       vif_ctx_lnx->if_idx, mgmt_tx_info);
@@ -2310,7 +2371,7 @@ int nrf_wifi_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 	pr_debug("%s: Waiting for response from RPU (Get STA)\n", __func__);
 
 	while (!vif_ctx_lnx->station_info && (count-- > 0))
-		msleep(100);
+		msleep_interruptible(100);
 
 	if (!vif_ctx_lnx->station_info) {
 		pr_err("%s:Timed out waiting for response from RPU (Get STA) \n",
@@ -2332,7 +2393,7 @@ int nrf_wifi_cfg80211_get_tx_power(struct wiphy *wiphy,
 {
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
-	unsigned int count = 50;
+	unsigned int count = 500;
 	int status = 0;
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
@@ -2356,7 +2417,7 @@ int nrf_wifi_cfg80211_get_tx_power(struct wiphy *wiphy,
 		 __func__);
 
 	while (!vif_ctx_lnx->event_tx_power && (count-- > 0))
-		msleep(100);
+		msleep_interruptible(100);
 
 	if (!vif_ctx_lnx->event_tx_power) {
 		pr_err("%s:Timed out waiting for response from RPU (Set TX power) \n",
@@ -2379,7 +2440,7 @@ int nrf_wifi_cfg80211_get_channel(struct wiphy *wiphy,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_dev_ctx_def *def_dev_ctx = NULL;
 	struct nrf_wifi_fmac_dev_ctx *fmac_dev_ctx = NULL;
-	unsigned int count = 50;
+	unsigned int count = 500;
 	unsigned int channel = 0;
 	int status = 0;
 
@@ -2421,7 +2482,7 @@ int nrf_wifi_cfg80211_get_channel(struct wiphy *wiphy,
 	pr_debug("%s: Waiting for response from RPU (Get Channel)\n", __func__);
 
 	while (!vif_ctx_lnx->chan_def && (count-- > 0))
-		msleep(100);
+		msleep_interruptible(100);
 
 	if (!vif_ctx_lnx->chan_def) {
 		status = -ETIMEDOUT;

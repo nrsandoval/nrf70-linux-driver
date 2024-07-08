@@ -660,7 +660,8 @@ static void shim_tasklet_kill(void *tasklet)
 
 static int shim_msleep(int msecs)
 {
-	msleep((unsigned int)msecs);
+	// msleep((unsigned int)msecs);
+	msleep_interruptible((unsigned int)msecs);
 
 	return 0;
 }
