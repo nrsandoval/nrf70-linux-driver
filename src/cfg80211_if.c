@@ -185,7 +185,7 @@ int nrf_wifi_cfg80211_chg_vif(struct wiphy *wiphy,
 		vif_info->nrf_wifi_use_4addr = 0;
 	}
 
-	vif_ctx_lnx->event_set_if = 0;q
+	vif_ctx_lnx->event_set_if = 0;
 	status = nrf_wifi_fmac_chg_vif(rpu_ctx_lnx->rpu_ctx,
 				       	vif_ctx_lnx->if_idx, vif_info);
 	if (status == NRF_WIFI_STATUS_FAIL) {
