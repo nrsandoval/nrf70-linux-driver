@@ -1728,8 +1728,6 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 	struct nrf_wifi_umac_mgmt_frame_info *frame_info = NULL;
 	struct nrf_wifi_cfg80211_mgmt_registration *reg = NULL;
 	bool frame_type_match = false;
-	// u16 mgmt_type;
-	// u16 frame_type = BIT(upd->global_stypes << 4);
 	static u16 last_upd = 0;
 	int status = -1;
 
@@ -1749,10 +1747,8 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 		pr_err("%s: no update\n", __func__);
 		goto out;
 	}
-#if 1
 	list_for_each_entry(reg, &wdev->mgmt_registrations, list) {
 		pr_info("%s: reg type=%04x", __func__, le16_to_cpu(reg->frame_type));
-		// if (!((le16_to_cpu(upd->interface_stypes << 4)) & le16_to_cpu(reg->frame_type)))
 		if ((last_upd ^ upd->interface_stypes) != BIT(le16_to_cpu(reg->frame_type) >> 4))
 			continue;
 		frame_type_match = true;
@@ -1773,13 +1769,6 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 	}
 	memcpy(frame_info->frame_match.frame_match, reg->match, reg->match_len);
 
-#else
-	frame_info->frame_type = frame_type;
-	pr_info("%s: sent=%04x frame_type=%04x global=%04x", __func__, 
-		frame_info->frame_type,
-		frame_type,
-		upd->global_stypes);
-#endif
 	status = nrf_wifi_fmac_mgmt_frame_reg(rpu_ctx_lnx->rpu_ctx,
 										vif_ctx_lnx->if_idx,
 										frame_info);
