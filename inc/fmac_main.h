@@ -33,6 +33,7 @@ struct nrf_wifi_fmac_vif_ctx_lnx {
 	int event_tx_power;
 	int event_set_if;
 	int status_set_if;
+	int cookie_resp;
 	enum nrf_wifi_fmac_if_carr_state if_carr_state;
 	struct p2p_info p2p;
 	unsigned long rssi_record_timestamp_us;

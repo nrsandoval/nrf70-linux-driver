@@ -703,6 +703,7 @@ void nrf_wifi_cookie_rsp_callbk_fn(
 	cookie_info->rpu_cookie = cookie_rsp->cookie;
 
 	list_add(&cookie_info->list, &rpu_ctx_lnx->cookie_list);
+	vif_ctx_lnx->cookie_resp = 1;
 }
 #endif /* !CONFIG_NRF700X_RADIO_TEST */
 

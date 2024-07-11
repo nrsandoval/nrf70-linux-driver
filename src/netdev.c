@@ -246,13 +246,13 @@ int nrf_wifi_netdev_open(struct net_device *netdev)
 		pr_err("%s: nrf_fmac_set_mode failed\n", __func__);
 		goto out;
 	}
-
+#if 0
 	status = nrf_wifi_fmac_set_packet_filter(rpu_ctx_lnx->rpu_ctx, NRF_WIFI_PACKET_FILTER_ALL,
 										vif_ctx_lnx->if_idx, 255);
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_set_packet_filter failed\n", __func__);
 	}
-
+#endif
 out:
 	if (vif_info)
 		kfree(vif_info);
@@ -356,7 +356,7 @@ void nrf_wifi_netdev_set_multicast_list(struct net_device *netdev)
 					      vif_ctx_lnx->if_idx, mcast_info);
 
 	if (status == NRF_WIFI_STATUS_FAIL) {
-		pr_err("%s: nrf_wifi_fmac_chg_vif_state failed\n", __func__);
+		pr_err("%s: nrf_wifi_fmac_set_mcast_addr failed\n", __func__);
 		goto out;
 	}
 
@@ -370,6 +370,7 @@ void nrf_wifi_netdev_frame_rx_callbk_fn(void *os_vif_ctx, void *frm)
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct sk_buff *skb = frm;
 	struct net_device *netdev = NULL;
+	pr_info("%s: rx\n", __func__);
 
 	vif_ctx_lnx = os_vif_ctx;
 	netdev = vif_ctx_lnx->netdev;

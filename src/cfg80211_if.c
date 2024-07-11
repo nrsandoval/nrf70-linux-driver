@@ -23,6 +23,7 @@ int get_scan_results;
 unsigned long long cmd_frame_cookie_g;
 
 #define CARR_ON_TIMEOUT_MS 5000
+#define ACTION_FRAME_RESP_TIMEOUT_MS 5000
 
 #ifndef CONFIG_NRF700X_RADIO_TEST
 struct wireless_dev *nrf_wifi_cfg80211_add_vif(struct wiphy *wiphy,
@@ -663,7 +664,7 @@ int nrf_wifi_cfg80211_chg_bcn(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_set_beacon_info *bcn_info = NULL;
 	int status = -1;
-
+	pr_info("%s: Changing\n", __func__);
 	vif_ctx_lnx = netdev_priv(netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
 
@@ -730,6 +731,19 @@ int nrf_wifi_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *netdev)
 	return status;
 }
 
+int nrf_wifi_cfg80211_connect(struct wiphy *wiphy, struct net_device *netdev,
+							struct cfg80211_connect_params *params)
+{
+	pr_info("%s: connecting\n", __func__);
+	return 0;
+}
+
+int nrf_wifi_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *netdev, u16 reason_code)
+{
+	pr_info("%s: Disconnect reason=%d", __func__, reason_code);
+	return 0;
+}
+
 int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 			      const u8 *mac, struct station_parameters *params)
 {
@@ -737,14 +751,14 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_add_sta_info *add_sta_info = NULL;
-	struct nl80211_sta_flag_update *flags2 = NULL;
+	// struct nl80211_sta_flag_update *flags2 = NULL;
 	int status = -1;
 	pr_info("%s: adding\n", __func__);
 	wdev = netdev->ieee80211_ptr;
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
-
+	pr_info("%s: alloc\n", __func__);
 	add_sta_info = kzalloc(sizeof(*add_sta_info), GFP_KERNEL);
 
 	if (!add_sta_info) {
@@ -758,7 +772,7 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 		add_sta_info->sta_capability = params->capability;
 
 	add_sta_info->nrf_wifi_listen_interval = params->listen_interval;
-
+pr_info("%s: support rates\n", __func__);
 	if (params->supported_rates_len > 0) {
 		memcpy(add_sta_info->supp_rates.rates, params->supported_rates,
 		       params->supported_rates_len);
@@ -766,7 +780,7 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 		add_sta_info->supp_rates.nrf_wifi_num_rates =
 			params->supported_rates_len;
 	}
-
+pr_info("%s: ext capability\n", __func__);
 	if (params->ext_capab_len > 0) {
 		memcpy(add_sta_info->ext_capability.ext_capability,
 		       params->ext_capab, params->ext_capab_len);
@@ -774,7 +788,7 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 		add_sta_info->ext_capability.ext_capability_len =
 			params->ext_capab_len;
 	}
-
+pr_info("%s: supported channels\n", __func__);
 	if (params->supported_channels_len > 0) {
 		memcpy(add_sta_info->supported_channels.supported_channels,
 		       params->supported_channels,
@@ -783,27 +797,27 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 		add_sta_info->supported_channels.supported_channels_len =
 			params->supported_channels_len;
 	}
-
+pr_info("%s: support oper classes\n", __func__);
 	if (params->supported_oper_classes_len > 0) {
-		memcpy(add_sta_info->supported_oper_classes
-			       .supported_oper_classes,
+		memcpy(add_sta_info->supported_oper_classes.supported_oper_classes,
 		       params->supported_oper_classes,
 		       params->supported_oper_classes_len);
 
 		add_sta_info->supported_oper_classes.supported_oper_classes_len =
 			params->supported_oper_classes_len;
 	}
-	flags2->mask = params->sta_flags_mask;
-	flags2->set = params->sta_flags_set;
-
+	// flags2->mask = params->sta_flags_mask;
+	// flags2->set = params->sta_flags_set;
+pr_info("%s: ht_capa\n", __func__);
 	if (params->ht_capa)
 		memcpy(add_sta_info->ht_capability, params->ht_capa,
 		       sizeof(struct ieee80211_ht_cap));
-
+pr_info("%s: vht_capa\n", __func__);
 	if (params->vht_capa)
 		memcpy(add_sta_info->vht_capability, params->vht_capa,
 		       sizeof(struct ieee80211_vht_cap));
 
+	pr_info("%s: ethercopy\n", __func__);
 	ether_addr_copy(add_sta_info->mac_addr, mac);
 
 	if (params->opmode_notif_used)
@@ -815,7 +829,7 @@ int nrf_wifi_cfg80211_add_sta(struct wiphy *wiphy, struct net_device *netdev,
 
 	if (params->max_sp)
 		add_sta_info->wme_max_sp = params->max_sp;
-
+	pr_info("%s: station\n", __func__);
 	status = nrf_wifi_fmac_add_sta(rpu_ctx_lnx->rpu_ctx, vif_ctx_lnx->if_idx, add_sta_info);
 	if (status != NRF_WIFI_STATUS_SUCCESS) {
 		pr_err("%s: nrf_wifi_fmac_add_sta failed\n", __func__);
@@ -1601,6 +1615,7 @@ int nrf_wifi_cfg80211_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_umac_mgmt_tx_info *mgmt_tx_info = NULL;
 	int status = -1;
+	unsigned int timeout = 0;
 	pr_info("%s: mgmt tx\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
@@ -1651,19 +1666,49 @@ int nrf_wifi_cfg80211_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 
 	/* Going to RPU */
 	mgmt_tx_info->host_cookie = cmd_frame_cookie_g;
+	vif_ctx_lnx->cookie_resp = 0;
 
 	/* Going to wpa_supplicant */
 	*cookie = cmd_frame_cookie_g;
-	pr_info("%s: Sending frame to RPU: cookie=%lld wait_time=%d no_ack=%d", __func__,
+	pr_info("%s: Sending frame to RPU: cookie=%lld wait_time=%d no_ack=%d flags=%x params=%d", __func__,
 			mgmt_tx_info->host_cookie,
 			mgmt_tx_info->dur,
-			mgmt_tx_info->nrf_wifi_flags & NRF_WIFI_CMD_FRAME_DONT_WAIT_FOR_ACK ? 1 : 0);
+			mgmt_tx_info->nrf_wifi_flags & NRF_WIFI_CMD_FRAME_DONT_WAIT_FOR_ACK ? 1 : 0,
+			mgmt_tx_info->nrf_wifi_flags,
+			params->dont_wait_for_ack);
 
 	status = nrf_wifi_fmac_mgmt_tx(rpu_ctx_lnx->rpu_ctx,
 				       vif_ctx_lnx->if_idx, mgmt_tx_info);
 
 	if (status == NRF_WIFI_STATUS_FAIL) {
 		pr_err("%s: nrf_wifi_fmac_mgmt_tx failed\n", __func__);
+		goto out;
+	}
+
+	if (params->wait || !params->dont_wait_for_ack) {
+		if (!params->dont_wait_for_ack && !params->wait) {
+			params->wait = ACTION_FRAME_RESP_TIMEOUT_MS;
+		}
+
+		while(!vif_ctx_lnx->cookie_resp &&
+			timeout++ < params->wait) {
+			msleep_interruptible(1);		
+		}
+
+		if (!vif_ctx_lnx->cookie_resp) {
+			pr_err("%s: cookie response not received (%dms)", __func__, params->wait);
+			status = NRF_WIFI_STATUS_FAIL;
+			goto out;
+		}
+
+		cfg80211_mgmt_tx_status(vif_ctx_lnx->netdev->ieee80211_ptr, 
+			mgmt_tx_info->host_cookie,
+			mgmt_tx_info->frame.frame,
+			mgmt_tx_info->frame.frame_len, 0,
+			GFP_KERNEL);
+
+		pr_info("%s: Finished\n", __func__);
+		status = NRF_WIFI_STATUS_SUCCESS;
 		goto out;
 	}
 
@@ -1683,9 +1728,12 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 	struct nrf_wifi_umac_mgmt_frame_info *frame_info = NULL;
 	struct nrf_wifi_cfg80211_mgmt_registration *reg = NULL;
 	bool frame_type_match = false;
+	// u16 mgmt_type;
+	// u16 frame_type = BIT(upd->global_stypes << 4);
+	static u16 last_upd = 0;
 	int status = -1;
 
-	pr_info("%s: Updating framge reg\n", __func__);
+	pr_info("%s: Updating frame reg=%04x global=%04x\n", __func__, upd->interface_stypes, upd->global_stypes);
 
 	vif_ctx_lnx = netdev_priv(wdev->netdev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -1697,21 +1745,41 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 		goto out;
 	}
 
+	if (last_upd == upd->interface_stypes) {
+		pr_err("%s: no update\n", __func__);
+		goto out;
+	}
+#if 1
 	list_for_each_entry(reg, &wdev->mgmt_registrations, list) {
-		if (!(upd->interface_stypes & le16_to_cpu(reg->frame_type)))
+		pr_info("%s: reg type=%04x", __func__, le16_to_cpu(reg->frame_type));
+		// if (!((le16_to_cpu(upd->interface_stypes << 4)) & le16_to_cpu(reg->frame_type)))
+		if ((last_upd ^ upd->interface_stypes) != BIT(le16_to_cpu(reg->frame_type) >> 4))
 			continue;
 		frame_type_match = true;
 
 		break;
 	}
 
-	if (!frame_type_match) {
+	if (!frame_type_match ) {
+		pr_err("%s: frametype not match %04x", __func__, le16_to_cpu(reg->frame_type));
 		goto out;
 	}
-
 	frame_info->frame_type = le16_to_cpu(reg->frame_type);
+	pr_info("%s: frametype=%04x len=%d", __func__, frame_info->frame_type, reg->match_len);
 	frame_info->frame_match.frame_match_len = reg->match_len;
+	if (reg->match_len >= NRF_WIFI_FRAME_MATCH_MAX_LEN) {
+		pr_err("%s: match_len too big: %d (max %d)", __func__, reg->match_len, NRF_WIFI_FRAME_MATCH_MAX_LEN);
+		goto out;
+	}
+	memcpy(frame_info->frame_match.frame_match, reg->match, reg->match_len);
 
+#else
+	frame_info->frame_type = frame_type;
+	pr_info("%s: sent=%04x frame_type=%04x global=%04x", __func__, 
+		frame_info->frame_type,
+		frame_type,
+		upd->global_stypes);
+#endif
 	status = nrf_wifi_fmac_mgmt_frame_reg(rpu_ctx_lnx->rpu_ctx,
 										vif_ctx_lnx->if_idx,
 										frame_info);
@@ -1723,6 +1791,7 @@ void nrf_wifi_cfg80211_mgmt_frame_reg(struct wiphy *wiphy,
 out:
 	if (frame_info)
 		kfree(frame_info);
+	last_upd = upd->interface_stypes;
 
 	return;
 }
@@ -1732,15 +1801,21 @@ void nrf_wifi_cfg80211_mgmt_rx_callbk_fn(
 	unsigned int event_len)
 {
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
+	bool status = false;
 
 	vif_ctx_lnx = os_vif_ctx;
 	pr_info("%s: mgmt rx callback\n", __func__);
 
-	cfg80211_rx_mgmt(vif_ctx_lnx->netdev->ieee80211_ptr,
-			 mgmt_rx_event->frequency, mgmt_rx_event->rx_signal_dbm,
+	status = cfg80211_rx_mgmt(vif_ctx_lnx->netdev->ieee80211_ptr,
+			 mgmt_rx_event->frequency, 
+			 mgmt_rx_event->rx_signal_dbm,
 			 mgmt_rx_event->frame.frame,
 			 mgmt_rx_event->frame.frame_len,
-			 mgmt_rx_event->nrf_wifi_flags);
+			 //mgmt_rx_event->nrf_wifi_flags);
+			 0);
+	if (!status) {
+		pr_err("%s: unregistered frame!\n", __func__);
+	}
 }
 
 void nrf_wifi_cfg80211_unprot_mlme_mgmt_rx_callbk_fn(
@@ -1764,6 +1839,7 @@ void nrf_wifi_cfg80211_tx_status_callbk_fn(
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	struct nrf_wifi_ctx_lnx *rpu_ctx_lnx = NULL;
 	unsigned long long host_cookie = 0;
+	unsigned long long rpu_cookie = 0;
 	struct cookie_info *cookie_info = NULL;
 	struct cookie_info *tmp = NULL;
 	bool ack_event = false;
@@ -1779,6 +1855,7 @@ void nrf_wifi_cfg80211_tx_status_callbk_fn(
 			continue;
 
 		host_cookie = cookie_info->host_cookie;
+		rpu_cookie = cookie_info->rpu_cookie;
 
 		pr_err("%s: found cookie = %llu\n", __func__, host_cookie);
 
@@ -1792,11 +1869,13 @@ void nrf_wifi_cfg80211_tx_status_callbk_fn(
 	ack_event = tx_status_event->nrf_wifi_flags & NRF_WIFI_EVENT_MLME_ACK ?
 			    true :
 			    false;
-
+	pr_info("%s: mgmt frame %llx rpu %llx tx status: %s",
+		__func__, host_cookie, rpu_cookie, ack_event ? "ACK" : "NOACK");
 	cfg80211_mgmt_tx_status(vif_ctx_lnx->netdev->ieee80211_ptr, host_cookie,
 				tx_status_event->frame.frame,
 				tx_status_event->frame.frame_len, ack_event,
-				GFP_ATOMIC);
+				GFP_KERNEL);
+	// vif_ctx_lnx->cookie_resp = 1;
 }
 
 // void nrf_wifi_cfg80211_mgmt_tx_status_callbk_fn(void *os_vif_ctx,
@@ -2357,6 +2436,7 @@ int nrf_wifi_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 	struct nrf_wifi_fmac_vif_ctx_lnx *vif_ctx_lnx = NULL;
 	unsigned int count = 50;
 	int status = 0;
+	pr_info("%s: Get station\n", __func__);
 
 	vif_ctx_lnx = netdev_priv(dev);
 	rpu_ctx_lnx = vif_ctx_lnx->rpu_ctx;
@@ -2566,6 +2646,8 @@ struct cfg80211_ops cfg80211_ops = {
 	.start_ap = nrf_wifi_cfg80211_start_ap,
 	.change_beacon = nrf_wifi_cfg80211_chg_bcn,
 	.stop_ap = nrf_wifi_cfg80211_stop_ap,
+	.connect = nrf_wifi_cfg80211_connect,
+	.disconnect = nrf_wifi_cfg80211_disconnect,
 
 	.add_station = nrf_wifi_cfg80211_add_sta,
 	.del_station = nrf_wifi_cfg80211_del_sta,
@@ -2592,7 +2674,7 @@ struct cfg80211_ops cfg80211_ops = {
 	.resume = nrf_wifi_cfg80211_resume,
 	.set_wakeup = nrf_wifi_cfg80211_set_wakeup,
 	.set_power_mgmt = nrf_wifi_cfg80211_set_power_mgmt,
-	// .set_qos_map = nrf_wifi_cfg80211_set_qos_map,
+	.set_qos_map = nrf_wifi_cfg80211_set_qos_map,
 
 	.get_station = nrf_wifi_cfg80211_get_station,
 	.get_tx_power = nrf_wifi_cfg80211_get_tx_power,
@@ -2759,7 +2841,7 @@ struct wiphy *cfg80211_if_init(struct device* dev)
 			WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
 
 	wiphy->features |=
-		NL80211_FEATURE_SK_TX_STATUS | NL80211_FEATURE_SAE |
+		NL80211_FEATURE_SK_TX_STATUS | //NL80211_FEATURE_SAE |
 		NL80211_FEATURE_HT_IBSS | NL80211_FEATURE_VIF_TXPOWER |
 		NL80211_FEATURE_MAC_ON_CREATE | NL80211_FEATURE_USERSPACE_MPM;
 

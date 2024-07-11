@@ -5,12 +5,14 @@
  * SPDX-License-Identifier: GPL-2.0
  */
 
+// Taken from net/wireless/mlme.c
 struct nrf_wifi_cfg80211_mgmt_registration {
 	struct list_head list;
 	struct wireless_dev *wdev;
 	u32 nlportid;
 	int match_len;
 	__le16 frame_type;
+	bool multicast_rx;
 	u8 match[];
 };
 
